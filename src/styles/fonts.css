@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+
+@font-face {
+    font-family: Nunito;
+    src: url('./fonts/nunito.regular.ttf');
+}
+
+@font-face {
+    font-family: NunitoBold;
+    src: url('./fonts/nunito.bold.ttf');
+}
+
+@font-face {
+    font-family: NunitoLight;
+    src: url('./fonts/nunito.light.ttf');
+}
+
+/* Defaults */
+
+body {
+    font-family: Nunito, sans-serif;
+}
+
+h1 {
+    font-family: NunitoBold, sans-serif;
+}
+
+h2 {
+    text-transform: uppercase;
+    font-weight: lighter;
+    font-family: NunitoLight, sans-serif;
+    letter-spacing: 2px;
+}
+
+
+/* Specific components */
+
+/* Main Clock */
+
+.main-clock-timer {
+    font-family: 'Roboto', sans-serif;
+    font-weight: bold;
+    font-size: 2rem;
+}
+
+.timer-with-secs {
+    font-size: 1.75rem;
+}
+
+.main-clock-name {
+    font-size: 1.25rem;
+}
+
+.main-clock-timezone {
+    font-size: .75rem;
+    font-family: NunitoLight, sans-serif;
+    font-weight: lighter;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
