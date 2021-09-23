@@ -1,5 +1,6 @@
 @import './fonts.css';
 @import './colors.css';
+@import './icons.css';
 
 /* Defaults */
 
@@ -129,7 +130,7 @@ select[multiple] {
 
 .main-navbar {
     grid-area: main-navbar;
-    z-index: 1;
+    z-index: 2;
 }
 
 .contact-panel {
@@ -190,7 +191,7 @@ select[multiple] {
     align-items: center;
 }
 
-.main-navbar-config div {
+.main-navbar-config div:not(:nth-last-child(1)) {
     padding-left: 12px;
 }
 
@@ -205,16 +206,6 @@ select[multiple] {
 .main-navbar-button, .main-navbar-session button:not(.main-navbar-signin), .main-navbar-theme {
     border: none;
     border-radius: 0%;
-}
-
-.main-navbar-button img {
-    height: 2.25rem;
-    padding-top: 4px;
-}
-
-.main-navbar-theme img {
-    height: 2.5rem;
-    padding-top: 4px;
 }
 
 .main-navbar-session {
@@ -232,19 +223,34 @@ select[multiple] {
     justify-content: space-between;
 }
 
-.main-navbar-session img {
-    height: 2rem;
-}
-
-.main-navbar-session button img {
-    padding-top: 4px;
-}
-
 .user-session-input {
     width: 120px !important;
+    cursor: pointer !important;
+}
+
+.user-session-menu {
+    position: fixed;
+    margin-top: -8px;
+    padding: 12px 20px;
+}
+
+.user-session-menu li {
+    padding: .25rem
+}
+
+.user-session-menu li:nth-child(1) {
+    margin-bottom: 8px;
 }
 
 /* Clock board */
+
+.clock-board-header {
+    z-index: 1;
+}
+
+.clock-board-buttons button {
+    margin-right: 8px;
+}
 
 .clock-creator form {
     display: flex;
@@ -292,6 +298,12 @@ select[multiple] {
     margin: 20px 0;
 }
 
+.main-clock-controls {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
 /* Contact panel */
 
 .contact-panel-header {
@@ -302,6 +314,11 @@ select[multiple] {
     padding: 0% 20px;
     padding-bottom: 16px;
     margin-left: -1px;
+    z-index: 1;
+}
+
+.contact-panel-buttons button {
+    margin-right: 8px;
 }
 
 .contact-input form {
@@ -349,7 +366,8 @@ select[multiple] {
     grid-template-rows: auto;
     grid-template-areas: 
         "contact-name contact-clock"
-        "contact-timezone contact-timezone";
+        "contact-timezone contact-timezone"
+        "contact-controls contact-controls";
 }
 
 .contact-name {
@@ -364,7 +382,11 @@ select[multiple] {
     grid-area: contact-timezone;
 }
 
-.contact-name, .contact-clock, .contact-timezone {
+.contact-controls {
+    grid-area: contact-controls;
+}
+
+.contact-name, .contact-clock, .contact-timezone, .contact-controls {
     margin: 8px 0;
 }
 
@@ -377,6 +399,11 @@ select[multiple] {
     width: 240px;
     padding: 0% 20px;
     padding-bottom: 16px;
+    z-index: 1;
+}
+
+.event-panel-buttons button {
+    margin-right: 8px;
 }
 
 .event-input form {
@@ -423,7 +450,7 @@ select[multiple] {
     margin-top: 0%;
 }
 
-.event-list p {
+.event-list > p {
     margin-top: 0%;
 }
 
@@ -435,7 +462,7 @@ select[multiple] {
     grid-template-areas: 
         "event-name event-datetime"
         "event-timezone event-timezone"
-        "event-timeleft event-reminder"
+        "event-timeleft event-controls"
         "event-participants event-participants";
 }
 
@@ -455,8 +482,11 @@ select[multiple] {
     grid-area: event-timeleft
 }
 
-.event-reminder {
-    grid-area: event-reminder;
+.event-controls {
+    grid-area: event-controls;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 .event-participants {
@@ -481,7 +511,7 @@ select[multiple] {
     margin-bottom: 0%;
 }
 
-.event-name, .event-datetime, .event-timezone, .event-timeleft, .event-reminder, .event-participants {
+.event-name, .event-datetime, .event-timezone, .event-timeleft, .event-participants {
     margin: 8px 0;
 }
 

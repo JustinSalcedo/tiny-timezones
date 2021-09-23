@@ -15,6 +15,14 @@
     src: url('./fonts/nunito.light.ttf');
 }
 
+:root {
+    --pnl-item-name-weight: bold;
+    --pnl-item-name-family: NunitoBold;
+
+    --pnl-item-tz-weight: lighter;
+    --pnl-item-tz-family: NunitoLight;
+}
+
 /* Defaults */
 
 body {
@@ -33,7 +41,28 @@ h2 {
 }
 
 
+/* General components */
+
+.event-name, .contact-name {
+    font-weight: var(--pnl-item-name-weight);
+    font-family: var(--pnl-item-name-family);
+}
+
+.event-timezone, .contact-timezone {
+    font-weight: var(--pnl-item-tz-weight);
+    font-family: var(--pnl-item-tz-family);
+    font-size: .875rem;
+}
+
+
 /* Specific components */
+
+/* Main NavBar */
+
+.user-session-menu a:hover {
+    font-family: NunitoBold;
+    font-weight: bold;
+}
 
 /* Main Clock */
 

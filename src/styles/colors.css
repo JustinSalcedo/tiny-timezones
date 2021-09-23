@@ -1,31 +1,111 @@
 :root {
     --common-black: hsl(0, 0%, 10%);
     --common-white: hsl(0, 0%, 100%);
-    --bkg-front: var(--common-white);
-    --bkg-back: hsl(0, 0%, 95%, 1);
-    --bkg-input: hsl(0, 0%, 92%, 1);
-    --bkg-btn-hover: hsl(0, 0%, 85%);
-    --bkg-checked: var(--common-black);
     --light-gray: hsla(0, 0%, 80%, 1);
+    --paper-white: hsl(0, 0%, 90%);
+    --trans-common-black: hsla(0, 0%, 10%, 0.8);
+
+    /* Backgrounds */
+    --bkg-front: var(--common-white);
+    --bkg-back: hsl(200, 70%, 90%);
+
+    /* Font colors */
+    --input-text: hsl(210, 80%, 25%);
+    --user-text: var(--common-black);
+    --btn-pos: hsl(130, 80%, 18%);
+    --btn-neg: hsl(10, 80%, 25%);
+    --btn-help: hsl(260, 80%, 25%);
+
+    --link-color: hsl(48, 100%, 63%);
+    --link-color-hover: hsl(48, 100%, 53%);
+
+    --timeleft-pos: hsl(130, 85%, 32%);
+    --timeleft-neg: hsl(10, 85%, 42%);
+
+    /* Components */
+    --bkg-input: hsl(200, 85%, 92%);
+    --bkg-input-focus: var(--common-white);
+
+    --bkg-btn: hsl(200, 85%, 92%);
+    --bkg-btn-hover: hsl(200, 85%, 87%);
+
+    --bkg-pos-btn: hsl(125, 88%, 86%);
+    --bkg-pos-btn-hover: hsl(125, 80%, 80%);
+
+    --bkg-neg-btn: hsl(0, 85%, 92%);
+    --bkg-neg-btn-hover: hsl(0, 85%, 87%);
+
+    --bkg-help-btn: hsl(260, 85%, 92%);
+    --bkg-help-btn-hover: hsl(260, 85%, 87%);
+
+    --bkg-checked: hsl(200, 85%, 87%);
+    --after-checkmark: hsl(210, 80%, 25%);
+
+    /* Borders */
     --light-border: 1px solid var(--light-gray);
+    --event-parts-border: 8px solid hsl(260, 85%, 92%);
+
+    /* Shadows */
     --bx-shdw-lit-color: hsla(0, 0%, 80%, 0.3);
     --bx-shdw-drk-color: hsla(0, 0%, 70%, 0.6);
-    --paper-white: hsl(0, 0%, 90%);
-    --event-parts-border: 8px solid var(--paper-white);
 }
 
 /* Defaults */
 
 input, select {
     background-color: var(--bkg-input);
+    color: var(--input-text);
+}
+
+input:focus, select:focus {
+    background-color: var(--bkg-input-focus);
+    color: var(--user-text);
+}
+
+input[type=submit], button {
+    background-color: var(--bkg-btn);
+    color: var(--input-text);
 }
 
 input[type=submit]:hover, button:hover {
-    background-color: var(--btb-hover);
+    background-color: var(--bkg-btn-hover);
 }
 
 
 /* General components */
+
+/* Buttons and submit inputs */
+
+.button-positive {
+    background-color: var(--bkg-pos-btn) !important;
+    color: var(--btn-pos) !important;
+}
+
+.button-positive:hover {
+    background-color: var(--bkg-pos-btn-hover) !important;
+}
+
+.button-negative {
+    background-color: var(--bkg-neg-btn) !important;
+    color: var(--btn-neg) !important;
+}
+
+.button-negative:hover {
+    background-color: var(--bkg-neg-btn-hover) !important;
+}
+
+.button-helper {
+    background-color: var(--bkg-help-btn) !important;
+    color: var(--btn-help) !important;
+}
+
+.button-helper:hover {
+    background-color: var(--bkg-help-btn-hover) !important;
+}
+
+.button-icon, .button-icon:hover {
+    background-color: inherit;
+}
 
 /* Custom checkbox */
 
@@ -34,7 +114,7 @@ input[type=submit]:hover, button:hover {
 }
 
 .checkbox-container:hover input ~ .checkmark {
-    background-color: var(--btb-hover);
+    background-color: var(--bkg-btn-hover);
 }
 
 .checkbox-container input:checked ~ .checkmark {
@@ -42,7 +122,17 @@ input[type=submit]:hover, button:hover {
 }
 
 .checkbox-container .checkmark:after {
-    border: 1px solid var(--common-white);
+    border: 1px solid var(--after-checkmark);
+}
+
+/* Regressive clock */
+
+.timeleft-positive {
+    color: var(--timeleft-pos)
+}
+
+.timeleft-negative {
+    color: var(--timeleft-neg)
 }
 
 /* General layout */
@@ -75,6 +165,24 @@ body {
     background-color: initial;
 }
 
+.user-session-menu {
+    background-color: var(--trans-common-black);
+    color: var(--paper-white);
+}
+
+.user-session-menu li:nth-child(1) {
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.user-session-menu a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.user-session-menu a:hover {
+    color: var(--link-color-hover);
+}
+
 /* Clock board */
 
 .main-clock {
@@ -85,7 +193,7 @@ body {
 
 .contact-panel {
     border-right: var(--light-border);
-    box-shadow: -4px 0px 4px --bx-shdw-drk-color, 2px 0px 2px var(--bx-shdw-lit-color);
+    box-shadow: -4px 0px 4px var(--bx-shdw-drk-color), 2px 0px 2px var(--bx-shdw-lit-color);
 }
 
 .contact-panel-header {
@@ -106,7 +214,7 @@ li:nth-child(1) .contact {
 
 .event-panel {
     border-left: var(--light-border);
-    box-shadow: 4px 0px 4px --bx-shdw-drk-color, -2px 0px 2px var(--bx-shdw-lit-color);
+    box-shadow: 4px 0px 4px var(--bx-shdw-drk-color), -2px 0px 2px var(--bx-shdw-lit-color);
 }
 
 .event-panel-header {
