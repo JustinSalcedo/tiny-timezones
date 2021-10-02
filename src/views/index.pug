@@ -5,8 +5,40 @@ html(lang="en")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title= title
+        link(rel="stylesheet", href="styles/main.css")
+        link(rel="stylesheet", href="styles/signin.css")
     body
-        a(href="/app")
-            h4 Try as guest 
-        a(href="/signup")
-            h4 Sign Up
+        script(src="https://accounts.google.com/gsi/client" async defer) 
+        .signin-container
+            .main-form
+                .signin-header
+                    h1 Tiny TimeZones 
+                    h2.subtitle Handly time notion with teams around the world
+                .signin-options
+                    .google-signin
+                        #g_id_onload(
+                            data-client_id='872369637684-899fs86eufar8724r4oc5tf1olahr1bd.apps.googleusercontent.com'
+                            data-login_uri='http://localhost:3000/api/auth/google'
+                            data-auto_prompt='false'
+                        )
+                        .g_id_signin(
+                            data-type='standard'
+                            data-size='large'
+                            data-theme='outline'
+                            data-text='sign_in_with'
+                            data-shape='rectangular'
+                            data-logo_alignment='left'
+                        )
+                    p or
+                    a(href="http://localhost:3000/app")
+                        button.guest-signin  Try as guest
+        footer.main-footer 
+            p 
+                span &copy; 2021. Designed &amp; Developed By 
+                    a(href="http://justinsalcedo.com").author-url Justin Salcedo
+                a(href="")
+                    img(src="/assets/github-white.svg", alt="")
+                a(href="") 
+                    img(src="/assets/twitter-white.svg", alt="")
+                a(href="") 
+                    img(src="/assets/linkedin-white.svg", alt="")

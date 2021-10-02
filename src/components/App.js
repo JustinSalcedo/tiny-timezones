@@ -1,31 +1,31 @@
 'use strict';
 
-const { Component, createContext, createElement } = React
+const { Component, createContext, createRef, createElement } = React
 
 function getAuthContextValue() {
-    if (!localStorage.getItem('user')) {
+    if (!localStorage.getItem('payload')) {
         return 'guest'
     } else {
-        return {
-            user: JSON.parse(localStorage.getItem('user')),
-            token: JSON.parse(localStorage.getItem('token'))
-        }
+        return decodePayload(localStorage.getItem('payload'))
     }
 }
 
-const AuthContext = createContext(getAuthContextValue())
+function decodePayload(encoded) {
+    const decodedUri = decodeURIComponent(encoded)
+    const stringified = window.atob(decodedUri)
+    return JSON.parse(stringified)
+}
+
+const AuthContext = createContext()
 
 const UserDataContext = createContext()
 
 class App extends Component {
     render() {
-        // const authContextValue = getAuthContextValue()
-        const authContextValue = {
-            user: { firstName: 'Nini', lastName: 'Panini' }
-        }
+        const authContextValue = getAuthContextValue()
 
         return (
-            <div className="container">
+            <div className="app-container">
                 <AuthContext.Provider value={authContextValue}>
                     <GlobalConfig />
                 </AuthContext.Provider>
@@ -35,15 +35,19 @@ class App extends Component {
 }
 
 class GlobalConfig extends Component {
+    static contextType = AuthContext
+
     constructor(props) {
         super(props)
     
         this.state = {
-            localTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Los_Angeles",
+            localTimeZone: Intl.DateTimeFormat().resolvedOptions().timezone || "America/Los_Angeles",
             displaySeconds: true,
             contacts: [],
             events: []
         }
+
+        this.componentIsMounted = createRef(true)
 
         this.changePreferences = this.changePreferences.bind(this)
         this.createContact = this.createContact.bind(this)
@@ -54,6 +58,22 @@ class GlobalConfig extends Component {
         this.findEventById = this.findEventById.bind(this)
         this.editEventById = this.editEventById.bind(this)
         this.deleteEventById = this.deleteEventById.bind(this)
+    }
+
+    componentDidMount() {
+        this.componentIsMounted.current = true
+
+        this.setState(() => {
+            const { contacts, events } = this.context.user
+            return {
+                contacts: contacts ? contacts : [],
+                events: events ? events : []
+            }
+        })
+    }
+
+    componentWillUnmount() {
+        this.componentIsMounted.current = false
     }
     
     changePreferences(e) {
@@ -68,9 +88,22 @@ class GlobalConfig extends Component {
     }
 
     createContact(newContactData) {
-        this.setState(({ contacts }) => ({
-            contacts: [...contacts, newContactData]
-        }))
+        const { user, token } = this.context
+        const contactService = new ContactAPI(token, user.openid_provider_tag)
+        contactService.create(newContactData)
+            .then(newContact => {
+                console.log('The new contact is %o\n and mounting is %s', newContact, this.componentIsMounted.current)
+                if (this.componentIsMounted.current) {
+                    this.setState(({ contacts }) => ({
+                        contacts: [...contacts, newContact]
+                    }))
+                }
+            })
+            .catch(error => console.error(error))
+
+        // this.setState(({ contacts }) => ({
+        //     contacts: [...contacts, newContactData]
+        // }))
     }
 
     findContactById(id) {
@@ -275,15 +308,15 @@ class TimeZoneSelector extends Component {
         super(props)
     
         this.state = {
-            timeZones: this.getTimeZones()
+            timezones: this.getTimeZones()
         }
     }
 
     getTimeZones() {
-        const timeZoneNames = moment.tz.names()
-        return timeZoneNames.map(timeZoneName => {
+        const timezoneNames = moment.tz.names()
+        return timezoneNames.map(timezoneName => {
             return {
-                name: timeZoneName,
+                name: timezoneName,
                 id: uuid.v1()
             }
         })
@@ -291,12 +324,12 @@ class TimeZoneSelector extends Component {
 
     render() {
         const { name, value, onChange} = this.props
-        const { timeZones } = this.state
+        const { timezones } = this.state
 
         return (
             <select name={name} value={value} onChange={onChange}>
-                {timeZones.map(timeZone => (
-                    <option key={timeZone.id} value={timeZone.name}>{timeZone.name}</option>
+                {timezones.map(timezone => (
+                    <option key={timezone.id} value={timezone.name}>{timezone.name}</option>
                 ))}
             </select>
         )
@@ -310,7 +343,7 @@ class ClockBoard extends Component {
         this.state = {
             clocks: [],
             newClockData: {
-                timeZone: this.props.userPreferences.localTimeZone,
+                timezone: this.props.userPreferences.localTimeZone,
                 clockName: ''
             },
             editedClockData: {},
@@ -335,7 +368,7 @@ class ClockBoard extends Component {
         const { name, value } = e.target
         const { editing } = this.state
 
-        if (name === "clockName" || name === "timeZone") {
+        if (name === "clockName" || name === "timezone") {
             if (editing) {
                 this.setState(({ editedClockData }) => ({
                    editedClockData: {
@@ -357,13 +390,13 @@ class ClockBoard extends Component {
     createClock(e, callback) {
         e.preventDefault()
         
-        const { timeZone, clockName } = this.state.newClockData
-        if (timeZone && clockName) {
+        const { timezone, clockName } = this.state.newClockData
+        if (timezone && clockName) {
             this.setState(({ clocks }) => ({
                 clocks: [...clocks, {
                     id: uuid.v1(),
                     clockName,
-                    timeZone
+                    timezone
                 }]
             }))
 
@@ -502,7 +535,7 @@ class ClockBoard extends Component {
                                 <li key={clock.id}>
                                     <MainClock
                                     id={clock.id}
-                                    timeZone={clock.timeZone}
+                                    timezone={clock.timezone}
                                     clockName={clock.clockName}
                                     tickInterval={tickInterval}
                                     displaySeconds={userPreferences.displaySeconds}
@@ -553,8 +586,8 @@ class ClockCreator extends Component {
                         <input type="text" name="clockName" value={clockData.clockName} onChange={changeClockData} />
                     </div>
                     <div>
-                        <label htmlFor="timeZone">Pick a time zone</label>
-                        <TimeZoneSelector name="timeZone" value={clockData.timeZone} onChange={changeClockData} />
+                        <label htmlFor="timezone">Pick a time zone</label>
+                        <TimeZoneSelector name="timezone" value={clockData.timezone} onChange={changeClockData} />
                     </div>
                     <input className="button-positive" type="submit" value={edited ? "Edit" : "Add"} />
                     <button className="button-negative" onClick={onDismiss}>{edited ? "Cancel" : "Dismiss"}</button>
@@ -571,9 +604,9 @@ function getUTCTimestamp() {
     return new Date(utcInMilliseconds)
 }
 
-function parseTimeToTimeZone(timeZone) {
+function parseTimeToTimeZone(timezone) {
     const utcTime = getUTCTimestamp().getTime()
-    const offsetInMilliseconds = moment.tz(timeZone)._offset * 60 * 1000
+    const offsetInMilliseconds = moment.tz(timezone)._offset * 60 * 1000
     const timeWithOffset = utcTime + offsetInMilliseconds
 
     return new Date(timeWithOffset)
@@ -615,18 +648,18 @@ class MainClock extends Component {
     }
     
     render() {
-        const { clockName, timeZone, displaySeconds, tickInterval, displayControls } = this.props
+        const { clockName, timezone, displaySeconds, tickInterval, displayControls } = this.props
 
         return (
             <div className="main-clock" >
                 <p className={"main-clock-timer" + `${displaySeconds ? " timer-with-secs" : ""}`}>
                     <Clock
-                    timeZone={timeZone}
+                    timezone={timezone}
                     tickInterval={tickInterval}
                     displaySeconds={displaySeconds} />
                 </p>
                 <p className="main-clock-name">{clockName}</p>
-                <p className="main-clock-timezone">{timeZone}</p>
+                <p className="main-clock-timezone">{timezone}</p>
                 {displayControls && (
                     <div className="main-clock-controls">
                         <button className="button-icon" onClick={this.editClock}>
@@ -646,7 +679,7 @@ class Clock extends Component {
     constructor(props) {
         super(props)
 
-        const parsedTime = parseTimeToTimeZone(this.props.timeZone)
+        const parsedTime = parseTimeToTimeZone(this.props.timezone)
     
         this.state = {
             date: parsedTime
@@ -665,7 +698,7 @@ class Clock extends Component {
     }
     
     tick() {
-        const parsedTime = parseTimeToTimeZone(this.props.timeZone)
+        const parsedTime = parseTimeToTimeZone(this.props.timezone)
 
         this.setState({
             date: parsedTime
@@ -700,7 +733,7 @@ class ContactPanel extends Component {
         this.state = {
             newContactData: {
                 name: '',
-                timeZone: this.props.localTimeZone
+                timezone: this.props.localTimeZone
             },
             editedContactData: {},
             editing: false,
@@ -723,7 +756,7 @@ class ContactPanel extends Component {
         const { name, value } = e.target
         const { editing } = this.state
 
-        if (name === "name" || name === "timeZone") {
+        if (name === "name" || name === "timezone") {
             if (editing) {
                 this.setState(({ editedContactData }) => ({
                     editedContactData: {
@@ -747,10 +780,7 @@ class ContactPanel extends Component {
 
         const { newContactData } = this.state
         if (newContactData.name) {
-            this.context.createContact({
-                ...newContactData,
-                id: uuid.v1()
-            })
+            this.context.createContact(newContactData)
 
             this.clearContactInput()
 
@@ -867,7 +897,7 @@ class ContactPanel extends Component {
                                 <Contact
                                 id={contact.id}
                                 name={contact.name}
-                                timeZone={contact.timeZone}
+                                timezone={contact.timezone}
                                 tickInterval={1000 * 5}
                                 displaySeconds={false}
                                 displayControls={displayControls}
@@ -915,8 +945,8 @@ class ContactInput extends Component {
                         <input type="text" name="name" value={contactData.name} onChange={changeContactData} />
                     </div>
                     <div>
-                        <label htmlFor="timeZone">Timezone</label>
-                        <TimeZoneSelector name="timeZone" value={contactData.timeZone} onChange={changeContactData} />
+                        <label htmlFor="timezone">Timezone</label>
+                        <TimeZoneSelector name="timezone" value={contactData.timezone} onChange={changeContactData} />
                     </div>
                     <input className="button-positive" type="submit" value={edited ? "Edit" : "Add"} />
                     <button className="button-negative" onClick={onDismiss}>{edited ? "Cancel" : "Dismiss"}</button>
@@ -946,18 +976,18 @@ class Contact extends Component {
     }
 
     render() {
-        const { name, timeZone, tickInterval, displaySeconds, displayControls } = this.props
+        const { name, timezone, tickInterval, displaySeconds, displayControls } = this.props
 
         return (
             <div className="contact">
                 <p className="contact-name">{name}</p>
                 <p className="contact-clock">
                     <Clock
-                    timeZone={timeZone}
+                    timezone={timezone}
                     tickInterval={tickInterval}
                     displaySeconds={displaySeconds} />
                 </p>
-                <p className="contact-timezone">{timeZone}</p>
+                <p className="contact-timezone">{timezone}</p>
                 {displayControls && (
                     <div className="contact-controls" >
                         <button className="button-icon" onClick={this.editContact}>
@@ -980,8 +1010,8 @@ function getFormattedDate(date) {
     return date.getFullYear() + "-" + month + "-" + dateN
 }
 
-function isValidTimeZone(timeZone) {
-    if (moment.tz.names().includes(timeZone)) {
+function isValidTimeZone(timezone) {
+    if (moment.tz.names().includes(timezone)) {
         return true
     }
 
@@ -1004,7 +1034,7 @@ class EventPanel extends Component {
                 name: '',
                 date: getFormattedDate(timePlusOneHour),
                 time: formatTimer(timePlusOneHour.getHours(), timePlusOneHour.getMinutes()),
-                timeZone: this.props.localTimeZone,
+                timezone: this.props.localTimeZone,
                 reminder: false,
                 contactIds: []
             },
@@ -1114,14 +1144,14 @@ class EventPanel extends Component {
             return false
         }
 
-        const { date, time, timeZone } = eventData
+        const { date, time, timezone } = eventData
 
-        if (!isValidTimeZone(timeZone)) {
+        if (!isValidTimeZone(timezone)) {
             return false
         }
 
         const timeStamp = new Date(date + " " + time)
-        const parsedTime = parseTimeToTimeZone(timeZone)
+        const parsedTime = parseTimeToTimeZone(timezone)
         if (timeStamp.getTime() <= parsedTime.getTime()) {
             return false
         }
@@ -1253,7 +1283,7 @@ class EventPanel extends Component {
                                     id={event.id}
                                     name={event.name}
                                     timeStamp={event.timeStamp}
-                                    timeZone={event.timeZone}
+                                    timezone={event.timezone}
                                     contactIds={event.contactIds}
                                     reminder={event.reminder}
                                     displayReminder={this.displayReminder}
@@ -1326,7 +1356,7 @@ class EventInput extends Component {
     render() {
         const { eventData, changeEventData, onDismiss, onClear, edited } = this.props
         
-        const parsedTime = parseTimeToTimeZone(eventData.timeZone)
+        const parsedTime = parseTimeToTimeZone(eventData.timezone)
         const timePlusOneMinute = new Date(parsedTime.getTime() + 1000 * 60)
         
         const minDate = getFormattedDate(timePlusOneMinute)
@@ -1348,8 +1378,8 @@ class EventInput extends Component {
                         <input type="time" name="time" value={eventData.time} onChange={changeEventData} min={minTime} />
                     </div>
                     <div>
-                        <label htmlFor="timeZone">Timezone</label>
-                        <TimeZoneSelector name="timeZone" value={eventData.timeZone} onChange={changeEventData} />
+                        <label htmlFor="timezone">Timezone</label>
+                        <TimeZoneSelector name="timezone" value={eventData.timezone} onChange={changeEventData} />
                     </div>
                     <div style={{ flexDirection: "row", alignItems: "self-start" }}>
                         <label className="checkbox-container">
@@ -1444,17 +1474,17 @@ class Event extends Component {
     }
 
     render() {
-        const { name, timeStamp, timeZone, contactIds, reminder, displayControls } = this.props
+        const { name, timeStamp, timezone, contactIds, reminder, displayControls } = this.props
 
         return (
             <div className="event">
                 <p className="event-name">{name}</p>
                 <p className="event-datetime">{getDateTime(timeStamp)}</p>
-                <p className="event-timezone">{timeZone}</p>
+                <p className="event-timezone">{timezone}</p>
                 <p className="event-timeleft">
                     Time left: <RegressiveClock
                     timeStamp={timeStamp}
-                    timeZone={timeZone}
+                    timezone={timezone}
                     tickInterval={1000 * 5}
                     onTimeOut={this.throwEvent} />
                 </p>
@@ -1491,7 +1521,7 @@ class RegressiveClock extends Component {
     constructor(props) {
         super(props)
 
-        const parsedTime = parseTimeToTimeZone(this.props.timeZone)
+        const parsedTime = parseTimeToTimeZone(this.props.timezone)
         const mlSecsLeft = getMlSecsLeftToNow(this.props.timeStamp, parsedTime)
     
         this.state = {
@@ -1511,7 +1541,7 @@ class RegressiveClock extends Component {
     }
     
     tick() {
-        const parsedTime = parseTimeToTimeZone(this.props.timeZone)
+        const parsedTime = parseTimeToTimeZone(this.props.timezone)
         const mlSecsLeft = getMlSecsLeftToNow(this.props.timeStamp, parsedTime)
 
         if (mlSecsLeft > 0) {
@@ -1593,3 +1623,62 @@ class Footer extends Component {
         )
     }
 }
+
+// CRUD methods
+
+const API_BASE_URL = window.location.origin + '/api'
+
+// Contacts
+
+// class ContactAPI {
+//     constructor(idToken, providerTag) {
+//         this.idToken = idToken
+//         this.providerTag = providerTag
+//         this.baseUrl = window.location.origin + '/api' + '/contact'
+//     }
+
+//     async create(contactData) {
+//         try {
+//             const url = this.baseUrl
+    
+//             const requestOptions = {
+//                 method: 'POST',
+//                 mode: 'cors',
+//                 headers: {
+//                     'Authorization': 'Bearer ' + this.idToken,
+//                     'OpenID-Provider': this.providerTag
+//                 },
+//                 body: contactData
+//             }
+    
+//             const response = await fetch(url, requestOptions)
+//             return response.json()
+    
+//         } catch (error) {
+//             console.log('Error creating new contact: %o', error)
+//         }
+//     }
+// }
+
+// async function createContact({ idToken, providerTag, contactData }) {
+//     try {
+//         const url = API_BASE_URL
+//             + '/contact'
+
+//         const requestOptions = {
+//             method: 'POST',
+//             mode: 'cors',
+//             headers: {
+//                 'Authorization': 'Bearer ' + idToken,
+//                 'OpenID-Provider': providerTag
+//             },
+//             body: contactData
+//         }
+
+//         const response = await fetch(url, requestOptions)
+//         return response.json()
+
+//     } catch (error) {
+//         console.log('Error creating new contact: %o', error)
+//     }
+// }

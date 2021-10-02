@@ -40,6 +40,14 @@ h2 {
     letter-spacing: 2px;
 }
 
+h2.subtitle {
+    text-transform: none;
+    letter-spacing: initial;
+    font-size: 1.125rem;
+}
+
+
+/* App fonts */
 
 /* General components */
 
@@ -86,4 +94,16 @@ h2 {
     font-weight: lighter;
     text-transform: uppercase;
     letter-spacing: 2px;
+}
+
+
+/* Signin fonts */
+
+.guest-signin {
+    font-size: 1rem;
+}
+
+.guest-signin:hover {
+    font-weight: bold;
+    text-decoration: underline;
 }

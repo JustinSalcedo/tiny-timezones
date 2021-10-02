@@ -123,6 +123,7 @@ input[type=submit]:hover, button:hover {
 
 .checkbox-container .checkmark:after {
     border: 1px solid var(--after-checkmark);
+    border-width: 0 3px 3px 0;
 }
 
 /* Regressive clock */
@@ -135,7 +136,7 @@ input[type=submit]:hover, button:hover {
     color: var(--timeleft-neg)
 }
 
-/* General layout */
+/* App - General layout */
 
 body {
     background-color: var(--bkg-back);
@@ -247,4 +248,20 @@ li:nth-child(1) .contact {
 .main-footer a:nth-child(2n) {
     border-left: 1px solid var(--paper-white);
     border-right: 1px solid var(--paper-white);
+}
+
+/* SignIn - General layout */
+
+.main-form {
+    background-color: var(--bkg-front);
+    box-shadow: 0px 8px 8px var(--bx-shdw-drk-color);
+}
+
+.signin-header {
+    border-bottom: var(--light-border);
+}
+
+.guest-signin:hover {
+    background-color: inherit;
+    color: var(--common-black);
 }

@@ -8,6 +8,18 @@ if (envFound.error) {
 }
 
 module.exports = {
+    host: process.env.HOST || 'localhost',
     port: parseInt(process.env.PORT, 10),
-    instance: process.env.INSTANCE || 'standalone'
+    defaultTimezone: 'America/Los_Angeles',
+    instance: process.env.INSTANCE || 'standalone',
+    database: {
+        user: process.env.POSTGRESQL_USER,
+        password: process.env.POSTGRESQL_PASSWORD,
+        name: process.env.POSTGRESQL_DB_NAME,
+        uri: process.env.POSTGRESQL_URI
+    },
+    providerTags: ['google'],
+    google: {
+        clientId: process.env.GOOGLE_CLIENT_ID
+    }
 }

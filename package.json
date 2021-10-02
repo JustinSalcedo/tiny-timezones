@@ -2,20 +2,33 @@
   "name": "tiny-timezones",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "build": "tsc",
+    "dev": "nodemon",
+    "inspect": "nodemon --inspect src/app.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Justin Salcedo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JustinSalcedo/tiny-timezones/issues"
+  },
+  "homepage": "https://github.com/JustinSalcedo/tiny-timezones#readme",
   "dependencies": {
+    "cookie-session": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "pug": "^3.0.2"
+    "google-auth-library": "^7.10.0",
+    "jsonwebtoken": "^8.5.1",
+    "keygrip": "^1.1.0",
+    "moment": "^2.29.1",
+    "pg": "^8.7.1",
+    "pg-hstore": "^2.3.4",
+    "pug": "^3.0.2",
+    "sequelize": "^6.6.5",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
