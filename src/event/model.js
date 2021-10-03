@@ -18,9 +18,6 @@ const Event = db.define('event', {
         type: Sequelize.BOOLEAN,
         allowNull: false
     },
-    // contact_ids: {
-    //     type: Sequelize.ARRAY(Sequelize.INTEGER)
-    // },
     userId: {
         type: Sequelize.INTEGER,
         allowNull: false

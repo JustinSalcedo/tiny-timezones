@@ -12,7 +12,6 @@ const signupWithGoogle = async (req, res, next) => {
             audience: google.clientId
         })
         req.tokenPayload = ticket.getPayload()
-        req.token = idToken
 
         return next()
     } catch (error) {

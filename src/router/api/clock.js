@@ -1,23 +1,23 @@
 const express = require('express')
 const route = express.Router()
 
-const contactService = require('../../contact/service')
+const clockService = require('../../clock/service')
 
-function contact(app) {
-    app.use('/contact', route)
+function clock(app) {
+    app.use('/clock', route)
 
     route.get(
         '/',
         async (req, res, next) => {
             try {
                 const { id } = req.session
-                const contactRecords = await contactService.findByUserId(id)
+                const clockRecords = await clockService.findByUserId(id)
 
-                if (!contactRecords) {
-                    return res.status(400).json({ error: 'Contacts could not be fetched' })
+                if (!clockRecords) {
+                    return res.status(400).json({ error: 'Clocks could not be fetched' })
                 }
 
-                return res.status(200).json({ contacts: contactRecords })
+                return res.status(200).json({ clocks: clockRecords })
             } catch (error) {
                 console.log('Error in %s: %o', req.path, error)
                 return next(error)
@@ -31,13 +31,13 @@ function contact(app) {
             try {
                 const { id } = req.session
                 const { name, timezone } = req.body
-                const contactRecord = await contactService.createContact(id, { name, timezone })
+                const clockRecord = await clockService.createClock(id, { name, timezone })
 
-                if (!contactRecord) {
-                    return res.status(400).json({ error: 'Contact could not be created' })
+                if (!clockRecord) {
+                    return res.status(400).json({ error: 'Clock could not be created' })
                 }
 
-                return res.status(201).json(contactRecord)
+                return res.status(201).json(clockRecord)
 
             } catch (error) {
                 console.log('Error in %s: %o', req.path, error)
@@ -47,20 +47,20 @@ function contact(app) {
     )
 
     route.patch(
-        '/:contactId',
+        '/:clockId',
         async (req, res, next) => {
             try {
                 const { id: userId } = req.session
-                const { contactId } = req.params
+                const { clockId } = req.params
                 
                 if (Object.keys(req.body).length === 0) {
-                    return res.status(400).json({ error: 'Contact needs at least one field to be updated' })
+                    return res.status(400).json({ error: 'Clock needs at least one field to be updated' })
                 }
 
-                const wasUpdated = await contactService.updateOneContact(userId, contactId, req.body)
+                const wasUpdated = await clockService.updateOneClock(userId, clockId, req.body)
 
                 if (!wasUpdated) {
-                    return res.status(400).json({ error: 'Contact could not be updated' })
+                    return res.status(400).json({ error: 'Clock could not be updated' })
                 }
 
                 return res.status(200).end()
@@ -73,13 +73,13 @@ function contact(app) {
     )
 
     route.delete(
-        '/:contactId',
+        '/:clockId',
         async (req, res, next) => {
             try {
                 const { id: userId } = req.session
-                const { contactId } = req.params
+                const { clockId } = req.params
 
-                await contactService.deleteOneContact(userId, contactId)
+                await clockService.deleteOneClock(userId, clockId)
 
                 return res.status(200).end()
 
@@ -91,4 +91,4 @@ function contact(app) {
     )
 }
 
-module.exports = contact
+module.exports = clock

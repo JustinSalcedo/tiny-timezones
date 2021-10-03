@@ -1,23 +1,23 @@
 const express = require('express')
 const route = express.Router()
 
-const contactService = require('../../contact/service')
+const eventService = require('../../event/service')
 
-function contact(app) {
-    app.use('/contact', route)
+function event(app) {
+    app.use('/event', route)
 
     route.get(
         '/',
         async (req, res, next) => {
             try {
                 const { id } = req.session
-                const contactRecords = await contactService.findByUserId(id)
+                const eventRecords = await eventService.findByUserId(id)
 
-                if (!contactRecords) {
-                    return res.status(400).json({ error: 'Contacts could not be fetched' })
+                if (!eventRecords) {
+                    return res.status(400).json({ error: 'Events could not be fetched' })
                 }
 
-                return res.status(200).json({ contacts: contactRecords })
+                return res.status(200).json({ events: eventRecords })
             } catch (error) {
                 console.log('Error in %s: %o', req.path, error)
                 return next(error)
@@ -30,14 +30,15 @@ function contact(app) {
         async (req, res, next) => {
             try {
                 const { id } = req.session
-                const { name, timezone } = req.body
-                const contactRecord = await contactService.createContact(id, { name, timezone })
+                const { name, timezone, timestamp, reminder, contactIds } = req.body
+                console.log('Our body is %o', req.body)
+                const eventRecord = await eventService.createEvent(id, { name, timezone, timestamp, reminder, contactIds })
 
-                if (!contactRecord) {
-                    return res.status(400).json({ error: 'Contact could not be created' })
+                if (!eventRecord) {
+                    return res.status(400).json({ error: 'Event could not be created' })
                 }
 
-                return res.status(201).json(contactRecord)
+                return res.status(201).json(eventRecord)
 
             } catch (error) {
                 console.log('Error in %s: %o', req.path, error)
@@ -47,20 +48,20 @@ function contact(app) {
     )
 
     route.patch(
-        '/:contactId',
+        '/:eventId',
         async (req, res, next) => {
             try {
                 const { id: userId } = req.session
-                const { contactId } = req.params
+                const { eventId } = req.params
                 
                 if (Object.keys(req.body).length === 0) {
-                    return res.status(400).json({ error: 'Contact needs at least one field to be updated' })
+                    return res.status(400).json({ error: 'Event needs at least one field to be updated' })
                 }
 
-                const wasUpdated = await contactService.updateOneContact(userId, contactId, req.body)
+                const wasUpdated = await eventService.updateOneEvent(userId, eventId, req.body)
 
                 if (!wasUpdated) {
-                    return res.status(400).json({ error: 'Contact could not be updated' })
+                    return res.status(400).json({ error: 'Event could not be updated' })
                 }
 
                 return res.status(200).end()
@@ -73,13 +74,13 @@ function contact(app) {
     )
 
     route.delete(
-        '/:contactId',
+        '/:eventId',
         async (req, res, next) => {
             try {
                 const { id: userId } = req.session
-                const { contactId } = req.params
+                const { eventId } = req.params
 
-                await contactService.deleteOneContact(userId, contactId)
+                await eventService.deleteOneEvent(userId, eventId)
 
                 return res.status(200).end()
 
@@ -91,4 +92,4 @@ function contact(app) {
     )
 }
 
-module.exports = contact
+module.exports = event

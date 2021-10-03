@@ -19,13 +19,14 @@ function auth(app) {
                     hasClocks: true,
                     hasContacts: true,
                     hasEvents: true
-                })
-                const { token } = req           
+                })         
     
                 const encodedPayload = utils.encodePayloadToURISafe({
-                    user,
-                    token
+                    user
                 })
+
+                req.session.id = user.id
+                req.session.nowInMinutes = Math.floor(Date.now() / 60e3)
                 
                 const redirectUri = `http://${config.host}:${config.port}/callback?payload=${encodedPayload}`
                 return res.redirect(302, redirectUri)

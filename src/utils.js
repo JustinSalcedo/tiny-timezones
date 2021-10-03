@@ -1,4 +1,5 @@
 const { providerTags } = require('./config')
+const moment = require('moment')
 
 const encodePayloadToURISafe = (payload) => {
     const stringified = JSON.stringify(payload)
@@ -29,8 +30,18 @@ const getOpenIdProvider = (req) => {
     return null
 }
 
+const validateTimezone = (timezone) => {
+    let validTimezone = timezone
+    if (!timezone || !moment.tz.names().includes(timezone)) {
+        validTimezone = config.defaultTimezone
+    }
+
+    return validTimezone
+}
+
 module.exports = {
     encodePayloadToURISafe,
     getTokenFromHeader,
-    getOpenIdProvider
+    getOpenIdProvider,
+    validateTimezone
 }

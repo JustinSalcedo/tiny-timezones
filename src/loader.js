@@ -26,6 +26,9 @@ async function loader(app) {
         })
         Event.belongsTo(User)
 
+        Contact.belongsToMany(Event, { through: 'EventContacts' })
+        Event.belongsToMany(Contact, { through: 'EventContacts' })
+
         await db.sync({ force: true })
 
         loadRoutes(app)

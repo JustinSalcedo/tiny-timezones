@@ -10,8 +10,13 @@ if (envFound.error) {
 module.exports = {
     host: process.env.HOST || 'localhost',
     port: parseInt(process.env.PORT, 10),
+    domain: process.env.DOMAIN || 'http://localhost:' + parseInt(process.env.PORT, 10),
     defaultTimezone: 'America/Los_Angeles',
     instance: process.env.INSTANCE || 'standalone',
+    cookieSecrets: [
+        process.env.CK_SCRT_1,
+        process.env.CK_SCRT_2
+    ],
     database: {
         user: process.env.POSTGRESQL_USER,
         password: process.env.POSTGRESQL_PASSWORD,

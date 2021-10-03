@@ -3,10 +3,66 @@
 const { Component, createContext, createRef, createElement } = React
 
 function getAuthContextValue() {
-    if (!localStorage.getItem('payload')) {
+    if (sessionStorage.getItem('payload')) {
+        const { user } = decodePayload(sessionStorage.getItem('payload'))
+        sessionStorage.removeItem('payload')
+    
+        setUserAssociatedData(user)
+        Reflect.deleteProperty(user, 'contacts')
+        Reflect.deleteProperty(user, 'clocks')
+        Reflect.deleteProperty(user, 'events')
+    
+        localStorage.setItem('user', JSON.stringify(user))
+        return { user }
+    }
+
+    if (sessionStorage.getItem('user')) {
+        if (!sessionStorage.getItem('clocks')) {
+            const clockService = new ClockAPI()
+            clockService.fetchAll()
+                .then(({ clocks }) => clockService.setList(clocks))
+                .catch(error => console.error(error))
+        }
+
+        if (!sessionStorage.getItem('contacts')) {
+            const contactService = new ContactAPI()
+            contactService.fetchAll()
+                .then(({ contacts }) => contactService.setList(contacts))
+                .catch(error => console.error(error))
+        }
+
+        if (!sessionStorage.getItem('events')) {
+            const eventService = new EventAPI()
+            eventService.fetchAll()
+                .then(({ events }) => eventService.setList(events))
+                .catch(error => console.error(error))
+        }
+    }
+
+    if (!sessionStorage.getItem('payload') ||
+        !localStorage.getItem('user')) {
+        localStorage.setItem('user', null)
         return 'guest'
-    } else {
-        return decodePayload(localStorage.getItem('payload'))
+    }
+
+}
+
+function setUserAssociatedData(user) {
+    const { contacts, clocks, events } = user
+    sessionStorage.setItem('contacts', contacts ? JSON.stringify(contacts) : null)
+    sessionStorage.setItem('clocks', clocks ? JSON.stringify(clocks) : null)
+    sessionStorage.setItem('events', events ? JSON.stringify(events) : null)
+}
+
+function getUserAssociatedData() {
+    const contacts = getParsedFromStorage(sessionStorage, 'contacts') || []
+    const clocks = getParsedFromStorage(sessionStorage, 'clocks') || []
+    const events = getParsedFromStorage(sessionStorage, 'events') || []
+
+    return {
+        contacts,
+        clocks,
+        events
     }
 }
 
@@ -14,6 +70,13 @@ function decodePayload(encoded) {
     const decodedUri = decodeURIComponent(encoded)
     const stringified = window.atob(decodedUri)
     return JSON.parse(stringified)
+}
+
+function getParsedFromStorage(storage, key) {
+    const stringValue = storage.getItem(key)
+    if (stringValue) {
+        return JSON.parse(stringValue)
+    }
 }
 
 const AuthContext = createContext()
@@ -39,12 +102,17 @@ class GlobalConfig extends Component {
 
     constructor(props) {
         super(props)
+
+        this.contactService = new ContactAPI()
+        this.eventService = new EventAPI()
+
+        const { contacts, events } = getUserAssociatedData()
     
         this.state = {
             localTimeZone: Intl.DateTimeFormat().resolvedOptions().timezone || "America/Los_Angeles",
             displaySeconds: true,
-            contacts: [],
-            events: []
+            contacts: contacts || [],
+            events: events || []
         }
 
         this.componentIsMounted = createRef(true)
@@ -62,14 +130,6 @@ class GlobalConfig extends Component {
 
     componentDidMount() {
         this.componentIsMounted.current = true
-
-        this.setState(() => {
-            const { contacts, events } = this.context.user
-            return {
-                contacts: contacts ? contacts : [],
-                events: events ? events : []
-            }
-        })
     }
 
     componentWillUnmount() {
@@ -88,22 +148,19 @@ class GlobalConfig extends Component {
     }
 
     createContact(newContactData) {
-        const { user, token } = this.context
-        const contactService = new ContactAPI(token, user.openid_provider_tag)
-        contactService.create(newContactData)
+        this.contactService.create(newContactData)
             .then(newContact => {
-                console.log('The new contact is %o\n and mounting is %s', newContact, this.componentIsMounted.current)
                 if (this.componentIsMounted.current) {
-                    this.setState(({ contacts }) => ({
-                        contacts: [...contacts, newContact]
-                    }))
+                    this.setState(({ contacts }) => {
+                        const moreContacts = [...contacts, newContact]
+                        this.contactService.setList(moreContacts)
+                        return {
+                            contacts: moreContacts
+                        }
+                    })
                 }
             })
             .catch(error => console.error(error))
-
-        // this.setState(({ contacts }) => ({
-        //     contacts: [...contacts, newContactData]
-        // }))
     }
 
     findContactById(id) {
@@ -112,33 +169,61 @@ class GlobalConfig extends Component {
     }
 
     editContactById(id, partialContactData) {
-        this.setState(({ contacts }) => ({
-            contacts: contacts.map(contact => {
-                if (contact.id === id) {
-                    return {
-                        ...contact,
-                        ...partialContactData
-                    }
+        this.contactService.update(id, partialContactData)
+            .then(statusCode => {
+                if (statusCode === 200 && this.componentIsMounted.current) {
+                    this.setState(({ contacts }) => {
+                        const newContacts = contacts.map(contact => {
+                            if (contact.id === id) {
+                                return {
+                                    ...contact,
+                                    ...partialContactData
+                                }
+                            }
+                            return contact
+                        })
+                        this.contactService.setList(newContacts)
+                        return {
+                            contacts: newContacts
+                        }
+                    })
                 }
-                
-                return contact
             })
-        }))
+            .catch(error => console.error(error))
     }
 
     deleteContactById(contactId) {
-        this.setState(({ contacts }) => {
-            const contactsLeft = contacts.filter(contact => contact.id !== contactId)
-            return {
-                contacts: contactsLeft
-            }
-        })
+        this.contactService.delete(contactId)
+            .then(statusCode => {
+                if (statusCode === 200 && this.componentIsMounted.current) {
+                    this.setState(({ contacts }) => {
+                        const contactsLeft = contacts.filter(contact => contact.id !== contactId)
+                        this.contactService.setList(contactsLeft)
+                        return {
+                            contacts: contactsLeft
+                        }
+                    })
+                }
+            })
+            .catch(error => console.error(error))
     }
 
     createEvent(newEventData) {
-        this.setState(({ events }) => ({
-            events: [...events, newEventData]
-        }))
+        console.log('Our event data is %o', newEventData)
+        this.eventService.create(newEventData)
+            .then(newEvent => {
+                if (this.componentIsMounted.current) {
+                    this.setState(({ events }) => {
+                        console.log('The returning event is %o', newEvent)
+                        const moreEvents = [...events, newEvent]
+                        this.eventService.setList(moreEvents)
+                        return {
+                            events: moreEvents
+                        }
+                    })
+                }
+            })
+            .catch(error => console.error(error))
     }
 
     findEventById(id) {
@@ -147,27 +232,44 @@ class GlobalConfig extends Component {
     }
 
     editEventById(id, partialEventData) {
-        this.setState(({ events }) => ({
-            events: events.map(event => {
-                if (event.id === id) {
-                    return {
-                        ...event,
-                        ...partialEventData
-                    }
+        this.eventService.update(id, partialEventData)
+            .then(statusCode => {
+                if (statusCode === 200 && this.componentIsMounted.current) {
+                    this.setState(({ events }) => {
+                        const newEvents = events.map(event => {
+                            if (event.id === id) {
+                                return {
+                                    ...event,
+                                    ...partialEventData
+                                }
+                            }
+                            
+                            return event
+                        })
+                        this.eventService.setList(newEvents)
+                        return {
+                            events: newEvents
+                        }
+                    })
                 }
-                
-                return event
             })
-        }))
+            .catch(error => console.error(error))
     }
 
     deleteEventById(eventId) {
-        this.setState(({ events }) => {
-            const eventsLeft = events.filter(event => event.id !== eventId)
-            return {
-                events: eventsLeft
-            }
-        })
+        this.eventService.delete(eventId)
+            .then(statusCode => {
+                if (statusCode === 200 && this.componentIsMounted.current) {
+                    this.setState(({ events }) => {
+                        const eventsLeft = events.filter(event => event.id !== eventId)
+                        this.eventService.setList(eventsLeft)
+                        return {
+                            events: eventsLeft
+                        }
+                    })
+                }
+            })
+            .catch(error => console.error(error))
     }
 
     render() {
@@ -339,18 +441,24 @@ class TimeZoneSelector extends Component {
 class ClockBoard extends Component {
     constructor(props) {
         super(props)
+
+        this.clockService = new ClockAPI()
+
+        const { clocks } = getUserAssociatedData()
     
         this.state = {
-            clocks: [],
+            clocks: clocks || [],
             newClockData: {
                 timezone: this.props.userPreferences.localTimeZone,
-                clockName: ''
+                name: ''
             },
             editedClockData: {},
             editing: false,
             displayCreator: false,
             displayControls: false
         }
+        
+        this.componentIsMounted = createRef(true)
 
         this.changeClockData = this.changeClockData.bind(this)
         this.createClock = this.createClock.bind(this)
@@ -364,11 +472,19 @@ class ClockBoard extends Component {
         this.toggleDisplayControls = this.toggleDisplayControls.bind(this)
     }
 
+    componentDidMount() {
+        this.componentIsMounted.current = true
+    }
+
+    componentWillUnmount() {
+        this.componentIsMounted.current = false
+    }
+
     changeClockData(e) {
         const { name, value } = e.target
         const { editing } = this.state
 
-        if (name === "clockName" || name === "timezone") {
+        if (name === "name" || name === "timezone") {
             if (editing) {
                 this.setState(({ editedClockData }) => ({
                    editedClockData: {
@@ -390,21 +506,27 @@ class ClockBoard extends Component {
     createClock(e, callback) {
         e.preventDefault()
         
-        const { timezone, clockName } = this.state.newClockData
-        if (timezone && clockName) {
-            this.setState(({ clocks }) => ({
-                clocks: [...clocks, {
-                    id: uuid.v1(),
-                    clockName,
-                    timezone
-                }]
-            }))
-
-            this.clearClockCreator()
-
-            if (callback) {
-                callback ()
-            }
+        const { timezone, name } = this.state.newClockData
+        if (timezone && name) {
+            this.clockService.create({ timezone, name })
+                .then(newClock => {
+                    if (this.componentIsMounted.current) {
+                        this.setState(({ clocks }) => {
+                            const moreClocks = [...clocks, newClock]
+                            this.clockService.setList(moreClocks)
+                            return {
+                                clocks: moreClocks
+                            }
+                        })
+            
+                        this.clearClockCreator()
+            
+                        if (callback) {
+                            callback ()
+                        }
+                    }
+                })
+                .catch(error => console.error(error))
         }
     }
 
@@ -418,7 +540,7 @@ class ClockBoard extends Component {
         this.setState(({ newClockData }) => ({
             newClockData: {
                 ...newClockData,
-                clockName: ''
+                name: ''
             }
         }))
     }
@@ -437,18 +559,28 @@ class ClockBoard extends Component {
     }
 
     updateClockById(id, partialClockData) {
-        this.setState(({ clocks }) => ({
-            clocks: clocks.map(clock => {
-                if (clock.id === id) {
-                    return {
-                        ...clock,
-                        ...partialClockData
-                    }
+        this.clockService.update(id, partialClockData)
+            .then(statusCode => {
+                if (statusCode === 200 && this.componentIsMounted.current) {
+                    this.setState(({ clocks }) => {
+                        const newClocks = clocks.map(clock => {
+                            if (clock.id === id) {
+                                return {
+                                    ...clock,
+                                    ...partialClockData
+                                }
+                            }
+                            
+                            return clock
+                        })
+                        this.clockService.setList(newClocks)
+                        return {
+                            clocks: newClocks
+                        }
+                    })
                 }
-                
-                return clock
             })
-        }))
+            .catch(error => console.error(error))
     }
 
     editClockById(e, id) {
@@ -457,30 +589,35 @@ class ClockBoard extends Component {
         const { editedClockData, clocks } = this.state
         const existingClock = clocks.find(clock => clock.id === id)
         const clockData = {...existingClock, ...editedClockData}
-        if (clockData.clockName) {
-            this.updateClockById(id, {
-                ...clockData
-            })
+        if (clockData.name) {
+            this.updateClockById(id, clockData)
 
             this.clearClockEditor()
         }
     }
 
     deleteClockById(clockId) {
-        this.setState(({ clocks, editedClockData }) => {
-            const clocksLeft = clocks.filter(clock => clock.id !== clockId)
-            if (editedClockData.id && clockId === editedClockData.id) {
-                return {
-                    editedClockData: {},
-                    editing: false,
-                    displayCreator: false,
-                    clocks: clocksLeft
+        this.clockService.delete(clockId)
+            .then(statusCode => {
+                if (statusCode === 200 && this.componentIsMounted.current) {
+                    this.setState(({ clocks, editedClockData }) => {
+                        const clocksLeft = clocks.filter(clock => clock.id !== clockId)
+                        this.clockService.setList(clocksLeft)
+                        if (editedClockData.id && clockId === editedClockData.id) {
+                            return {
+                                editedClockData: {},
+                                editing: false,
+                                displayCreator: false,
+                                clocks: clocksLeft
+                            }
+                        }
+                        return {
+                            clocks: clocksLeft
+                        }
+                    })
                 }
-            }
-            return {
-                clocks: clocksLeft
-            }
-        })
+            })
+            .catch(error => console.error(error))
     }
 
     clearClockEditor() {
@@ -536,7 +673,7 @@ class ClockBoard extends Component {
                                     <MainClock
                                     id={clock.id}
                                     timezone={clock.timezone}
-                                    clockName={clock.clockName}
+                                    name={clock.name}
                                     tickInterval={tickInterval}
                                     displaySeconds={userPreferences.displaySeconds}
                                     displayControls={displayControls}
@@ -582,8 +719,8 @@ class ClockCreator extends Component {
                 <h3>Create a new clock</h3>
                 <form onSubmit={edited ? this.editClock : this.createClock}>
                     <div>
-                        <label htmlFor="clockName">Choose a clock name</label>
-                        <input type="text" name="clockName" value={clockData.clockName} onChange={changeClockData} />
+                        <label htmlFor="name">Choose a clock name</label>
+                        <input type="text" name="name" value={clockData.name} onChange={changeClockData} />
                     </div>
                     <div>
                         <label htmlFor="timezone">Pick a time zone</label>
@@ -648,7 +785,7 @@ class MainClock extends Component {
     }
     
     render() {
-        const { clockName, timezone, displaySeconds, tickInterval, displayControls } = this.props
+        const { name, timezone, displaySeconds, tickInterval, displayControls } = this.props
 
         return (
             <div className="main-clock" >
@@ -658,7 +795,7 @@ class MainClock extends Component {
                     tickInterval={tickInterval}
                     displaySeconds={displaySeconds} />
                 </p>
-                <p className="main-clock-name">{clockName}</p>
+                <p className="main-clock-name">{name}</p>
                 <p className="main-clock-timezone">{timezone}</p>
                 {displayControls && (
                     <div className="main-clock-controls">
@@ -1070,8 +1207,10 @@ class EventPanel extends Component {
             }
 
             if (name === "contactIds") {
-                const { contactIds } = editing ? editedEventData : newEventData
-                value = e.target.checked ? [...contactIds, e.target.value] : contactIds.filter(id => id !== e.target.value)
+                let { contactIds } = editing ? editedEventData : newEventData
+                contactIds = contactIds || []
+                const targetValue = (!isNaN(e.target.value)) ? parseInt(e.target.value) : e.target.value
+                value = e.target.checked ? [...contactIds, targetValue] : contactIds.filter(id => id !== targetValue)
             }
 
             if (editing) {
@@ -1099,12 +1238,11 @@ class EventPanel extends Component {
         if (this.isValidEvent(newEventData)) {
 
             const { date, time } = newEventData
-            const timeStamp = new Date(date + " " + time)
+            const timestamp = new Date(date + " " + time)
 
             const parsedEventData = {
                 ...newEventData,
-                id: uuid.v1(),
-                timeStamp
+                timestamp
             }
 
             Reflect.deleteProperty(parsedEventData, "date")
@@ -1129,10 +1267,10 @@ class EventPanel extends Component {
         const eventToRemind = events.find(event => event.id === eventId)
         
         if (eventToRemind) {
-            const { name, timeStamp } = eventToRemind
+            const { name, timestamp } = eventToRemind
 
             alert(
-                "It's " + formatTimer(timeStamp.getHours(), timeStamp.getMinutes()) + '\n'
+                "It's " + formatTimer(timestamp.getHours(), timestamp.getMinutes()) + '\n'
                 + 'Reminder for ' + name
             )
         }
@@ -1150,9 +1288,9 @@ class EventPanel extends Component {
             return false
         }
 
-        const timeStamp = new Date(date + " " + time)
+        const timestamp = new Date(date + " " + time)
         const parsedTime = parseTimeToTimeZone(timezone)
-        if (timeStamp.getTime() <= parsedTime.getTime()) {
+        if (timestamp.getTime() <= parsedTime.getTime()) {
             return false
         }
 
@@ -1178,14 +1316,16 @@ class EventPanel extends Component {
 
     startEventEditor(eventId) {
         const event = this.context.findEventById(eventId)
+        const date = new Date(event.timestamp)
 
         this.setState(() => ({
             displayInput: true,
             editing: true,
             editedEventData: {
                 ...event,
-                date: getFormattedDate(event.timeStamp),
-                time: formatTimer(event.timeStamp.getHours(), event.timeStamp.getMinutes())
+                date: getFormattedDate(date),
+                time: formatTimer(date.getHours(), date.getMinutes()),
+                contactIds: event.contactIds || []
             }
         }))
     }
@@ -1199,11 +1339,11 @@ class EventPanel extends Component {
 
         if (this.isValidEvent(eventData)) {
             const { date, time } = eventData
-            const timeStamp = new Date(date + " " + time)
+            const timestamp = new Date(date + " " + time)
 
             const parsedEventData = {
                 ...eventData,
-                timeStamp
+                timestamp
             }
 
             Reflect.deleteProperty(parsedEventData, "date")
@@ -1282,7 +1422,7 @@ class EventPanel extends Component {
                                     <Event
                                     id={event.id}
                                     name={event.name}
-                                    timeStamp={event.timeStamp}
+                                    timestamp={new Date(event.timestamp)}
                                     timezone={event.timezone}
                                     contactIds={event.contactIds}
                                     reminder={event.reminder}
@@ -1317,11 +1457,7 @@ class ContactSelector extends Component {
                     {contacts.map(contact => (
                         <label key={contact.id} className="checkbox-container">
                             {contact.name}
-                            {contactIds ? (
-                                <input type="checkbox" name={name} value={contact.id} onChange={onChange} checked={contactIds.includes(contact.id)} />
-                            ) : (
-                                <input type="checkbox" name={name} value={contact.id} onChange={onChange} />
-                            )}
+                            <input type="checkbox" name={name} value={contact.id} onChange={onChange} checked={contactIds.includes(contact.id)} />
                             <span className="checkmark mini-checkmark"></span>
                         </label>
                     ))}
@@ -1474,16 +1610,16 @@ class Event extends Component {
     }
 
     render() {
-        const { name, timeStamp, timezone, contactIds, reminder, displayControls } = this.props
+        const { name, timestamp, timezone, contactIds, reminder, displayControls } = this.props
 
         return (
             <div className="event">
                 <p className="event-name">{name}</p>
-                <p className="event-datetime">{getDateTime(timeStamp)}</p>
+                <p className="event-datetime">{getDateTime(timestamp)}</p>
                 <p className="event-timezone">{timezone}</p>
                 <p className="event-timeleft">
                     Time left: <RegressiveClock
-                    timeStamp={timeStamp}
+                    timestamp={timestamp}
                     timezone={timezone}
                     tickInterval={1000 * 5}
                     onTimeOut={this.throwEvent} />
@@ -1507,7 +1643,7 @@ class Event extends Component {
                         </button>
                     )}
                 </div>
-                {contactIds.length > 0 && <EventParticipants contactIds={contactIds} />}
+                {(contactIds && contactIds.length > 0 )&& <EventParticipants contactIds={contactIds} />}
             </div>
         )
     }
@@ -1522,7 +1658,7 @@ class RegressiveClock extends Component {
         super(props)
 
         const parsedTime = parseTimeToTimeZone(this.props.timezone)
-        const mlSecsLeft = getMlSecsLeftToNow(this.props.timeStamp, parsedTime)
+        const mlSecsLeft = getMlSecsLeftToNow(this.props.timestamp, parsedTime)
     
         this.state = {
             mlSecsLeft
@@ -1542,7 +1678,7 @@ class RegressiveClock extends Component {
     
     tick() {
         const parsedTime = parseTimeToTimeZone(this.props.timezone)
-        const mlSecsLeft = getMlSecsLeftToNow(this.props.timeStamp, parsedTime)
+        const mlSecsLeft = getMlSecsLeftToNow(this.props.timestamp, parsedTime)
 
         if (mlSecsLeft > 0) {
             this.setState({

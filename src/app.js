@@ -6,17 +6,31 @@ const config = require('./config')
 const express = require('express')
 const app = express()
 
+const cookieSession = require('cookie-session')
+const Keygrip = require('keygrip')
+
 const loader = require('./loader')
 
 app.use(cors({
     origin: '*'
 }))
 
+app.set('trust proxy', 1)
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 app.set('views', './src/views')
 app.set('view engine', 'pug')
+
+app.use(cookieSession({
+    name: 'session',
+    keys: new Keygrip(config.cookieSecrets, 'SHA256', 'base64'),
+    maxAge: 24 * 60 * 60 * 1000,
+    domain: config.domain,
+    secure: true,
+    httpOnly: true
+}))
 
 loader(app)
 

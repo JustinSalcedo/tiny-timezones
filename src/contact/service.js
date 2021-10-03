@@ -1,14 +1,10 @@
 const store = require('./store')
-const moment = require('moment')
 
-const config = require('../config')
+const { validateTimezone } = require('../utils')
 
-function createContact(userId, contactData) {
+async function createContact(userId, contactData) {
     let { timezone, name } = contactData
-    // console.log('current timezone is %s\n and all timezones are %o\n', timezone, moment.tz.names())
-    if (!timezone || !moment.tz.names().includes(timezone)) {
-        timezone = config.defaultTimezone
-    }
+    timezone = validateTimezone(timezone)
 
     const contactDTO = {
         name,
@@ -18,6 +14,41 @@ function createContact(userId, contactData) {
     return store.create(userId, contactDTO)
 }
 
+async function findByUserId(userId) {
+    return store.findWhere({
+        userId
+    })
+}
+
+async function updateOneContact(userId, contactId, contactData) {
+    const contactDTO = { ...contactData }
+
+    if (contactDTO.timezone) {
+        contactDTO.timezone = validateTimezone(contactDTO.timezone)
+    }
+
+    const [ nRows ] = await store.updateWhere(contactDTO, {
+        userId,
+        id: contactId
+    })
+
+    if (nRows === 1) {
+        return true
+    } else if (nRows === 0) {
+        return false
+    } else throw new Error('More than one record were updated')
+}
+
+async function deleteOneContact(userId, contactId) {
+    return store.deleteWhere({
+        userId,
+        id: contactId
+    })
+}
+
 module.exports = {
-    createContact
+    createContact,
+    findByUserId,
+    updateOneContact,
+    deleteOneContact
 }
