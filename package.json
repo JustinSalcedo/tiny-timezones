@@ -1,9 +1,13 @@
 {
   "name": "tiny-timezones",
   "version": "1.0.0",
-  "description": "",
+  "description": "Handle time notion with teams around the world",
+  "engines" : {
+    "node": "14.x"
+  },
   "main": "src/app.js",
   "scripts": {
+    "start": "node src/app.js",
     "build": "tsc",
     "dev": "nodemon",
     "inspect": "nodemon --inspect src/app.js"
