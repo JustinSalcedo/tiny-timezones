@@ -17,8 +17,8 @@ html(lang="en")
                 .signin-options
                     .google-signin
                         #g_id_onload(
-                            data-client_id='872369637684-899fs86eufar8724r4oc5tf1olahr1bd.apps.googleusercontent.com'
-                            data-login_uri='http://localhost:3000/api/auth/google'
+                            data-client_id= googleId
+                            data-login_uri= domain + '/api/auth/google'
                             data-auto_prompt='false'
                         )
                         .g_id_signin(
@@ -30,7 +30,7 @@ html(lang="en")
                             data-logo_alignment='left'
                         )
                     p or
-                    a(href="http://localhost:3000/app?isGuest=true")
+                    a(href= domain + "/app?isGuest=true")
                         button.guest-signin  Try as guest
         footer.common-footer 
             p 

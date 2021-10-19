@@ -5,8 +5,9 @@ function ReactApp(expressApp) {
     expressApp.use('/app', route)
 
     const templateParams = {
-        title: 'Hohooo',
-        reactEnv: (process.env.NODE_ENV === 'development') ? 'development' : 'production.min'
+        title: 'Tiny TimeZones',
+        reactEnv: (process.env.NODE_ENV === 'development') ? 'development' : 'production.min',
+        env: process.env.NODE_ENV
     }
 
     route.get('', (req, res) => {
