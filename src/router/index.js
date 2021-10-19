@@ -1,7 +1,7 @@
 const api = require('./api')
 const reactApp = require('./app')
 
-const { author } = require('../config')
+const { author, domain, google } = require('../config')
 
 function loadRoutes(app) {
 
@@ -9,6 +9,7 @@ function loadRoutes(app) {
         const templateParams = {
             title: 'Tiny TimeZones',
             reactEnv: (process.env.NODE_ENV === 'development') ? 'development' : 'production.min',
+            env: process.env.NODE_ENV,
             author
         }
 
@@ -17,7 +18,9 @@ function loadRoutes(app) {
 
     app.get('/callback', (req, res) => {
         const templateParams = {
-            title: 'Tiny TimeZones'
+            title: 'Tiny TimeZones',
+            domain,
+            googleId: google.clientId
         }
 
         res.render('callback', templateParams)

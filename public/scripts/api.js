@@ -32,7 +32,6 @@ class UserAPI {
 
             if (isNew && userStringified) {
                 const { localTimezone, displaySeconds, darkTheme } = JSON.parse(userStringified).user
-                console.log('user is %o', user)
                 this.savePreferences({ localTimezone, displaySeconds, darkTheme }, true)
             }
 
@@ -44,7 +43,6 @@ class UserAPI {
 
         // There is existing user data, but this is authenticated
         if (userStringified && !JSON.parse(userStringified).isGuest) {
-            console.log('parsed user is %o', JSON.parse(userStringified))
             // Coming from clicking 'Try Guest' button
             if (isGuest === "true") {
                 this.deleteUserInfo()
@@ -132,12 +130,12 @@ class UserAPI {
     }
 
     savePreferences(userPreferences, isAuth) {
-        console.log('Saving preferences. Preferences are %o', userPreferences)
         if (isAuth) {
             this.updatePreferences(userPreferences)
-                .then(statusCode => {
-                    if (statusCode === 200) console.log('Preferences saved')
-                })
+                // .then(statusCode => {
+                //     if (statusCode === 200) console.log('Preferences saved')
+                // })
+                .then(statusCode => {})
         }
 
         const { user } = JSON.parse(localStorage.getItem('user'))
@@ -199,7 +197,6 @@ class TimeItemsAPI {
 
     PersistData(key) {
         if (localStorage.getItem(key)) {
-            console.log('Persisting data')
             const itemsData = JSON.parse(localStorage.getItem(key))
             this.AddMany(key, itemsData)
                 .then(() => localStorage.removeItem(key))
@@ -234,11 +231,9 @@ class TimeItemsAPI {
     }
 
     async AddMany(key, itemsData) {
-        console.log('Im Adding manyyyyy')
         let newItems = []
         if (this.isAuth) {
             newItems = await this.createMany(itemsData)
-            console.log('newItems are %o', newItems)
         } else {
             newItems = itemsData.map(itemData => ({ ...itemData, id: uuid.v4() }))
         }
@@ -397,7 +392,6 @@ class ClockAPI extends TimeItemsAPI {
 
     async createMany(itemsData) {
         try {
-            console.log('Trying to create many clocks')
             const parsedItems = itemsData.map(({ name, timezone }) => ({ name, timezone }))
             const url = this.baseUrl
             const { signal } = this.controller
@@ -416,7 +410,6 @@ class ClockAPI extends TimeItemsAPI {
     
             const response = await fetch(url, requestOptions)
             const { clocks } = await response.json()
-            console.log('Our clocks are %o', clocks)
             return clocks
         } catch (error) {
             console.log('Error creating new clocks: %o', error)
