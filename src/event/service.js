@@ -19,6 +19,24 @@ async function createEvent(userId, eventData) {
     return parseContactIds(eventRecord)
 }
 
+async function createManyEvents(userId, eventsData) {
+    const eventRecords = await store.createMany(userId, eventsData.map(eventData => {
+        let { timezone, name, timestamp, reminder, contactIds } = eventData
+        timezone = validateTimezone(timezone)
+        reminder = !!reminder
+    
+        return {
+            name,
+            timezone,
+            timestamp,
+            reminder,
+            contactIds
+        }
+    }))
+
+    return eventRecords.map(record => parseContactIds(record))
+}
+
 async function findByUserId(userId) {
     const eventRecords = await store.findWhere({
         userId
@@ -69,6 +87,7 @@ function parseContactIds(eventRecord) {
 
 module.exports = {
     createEvent,
+    createManyEvents,
     findByUserId,
     updateOneEvent,
     deleteOneEvent

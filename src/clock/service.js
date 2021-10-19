@@ -14,6 +14,15 @@ async function createClock(userId, clockData) {
     return store.create(userId, clockDTO)
 }
 
+async function createManyClocks(userId, clocksData) {
+    return store.createMany(userId, clocksData.map(clockData => {
+        let { timezone, name } = clockData
+        timezone = validateTimezone(timezone)
+    
+        return { timezone, name }
+    }))
+}
+
 async function findByUserId(userId) {
     return store.findWhere({
         userId
@@ -48,6 +57,7 @@ async function deleteOneClock(userId, clockId) {
 
 module.exports = {
     createClock,
+    createManyClocks,
     findByUserId,
     updateOneClock,
     deleteOneClock

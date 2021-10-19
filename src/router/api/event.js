@@ -10,7 +10,7 @@ function event(app) {
         '/',
         async (req, res, next) => {
             try {
-                const { id } = req.session
+                const id = req.session.userId
                 const eventRecords = await eventService.findByUserId(id)
 
                 if (!eventRecords) {
@@ -19,7 +19,7 @@ function event(app) {
 
                 return res.status(200).json({ events: eventRecords })
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -29,9 +29,19 @@ function event(app) {
         '/',
         async (req, res, next) => {
             try {
-                const { id } = req.session
-                const { name, timezone, timestamp, reminder, contactIds } = req.body
-                console.log('Our body is %o', req.body)
+                const id = req.session.userId
+                const { name, timezone, timestamp, reminder, contactIds, events } = req.body
+
+                if (events) {
+                    const eventRecords = await eventService.createManyEvents(id, events)
+    
+                    if (!eventRecords) {
+                        return res.status(400).json({ error: 'Events could not be created' })
+                    }
+    
+                    return res.status(201).json({ events: eventRecords })
+                }
+                
                 const eventRecord = await eventService.createEvent(id, { name, timezone, timestamp, reminder, contactIds })
 
                 if (!eventRecord) {
@@ -41,7 +51,7 @@ function event(app) {
                 return res.status(201).json(eventRecord)
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -51,7 +61,7 @@ function event(app) {
         '/:eventId',
         async (req, res, next) => {
             try {
-                const { id: userId } = req.session
+                const { userId } = req.session
                 const { eventId } = req.params
                 
                 if (Object.keys(req.body).length === 0) {
@@ -67,7 +77,7 @@ function event(app) {
                 return res.status(200).end()
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -77,7 +87,7 @@ function event(app) {
         '/:eventId',
         async (req, res, next) => {
             try {
-                const { id: userId } = req.session
+                const { userId } = req.session
                 const { eventId } = req.params
 
                 await eventService.deleteOneEvent(userId, eventId)
@@ -85,7 +95,7 @@ function event(app) {
                 return res.status(200).end()
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }

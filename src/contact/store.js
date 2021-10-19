@@ -9,6 +9,13 @@ async function create(userId, contactDTO) {
     return contactRecord
 }
 
+async function createMany(userId, contactDTOs) {
+    const parsedContactData = contactDTOs.map(contact => ({ ...contact, userId }))
+    const contactRecords = await ContactModel.bulkCreate(parsedContactData, { validate: true })
+
+    return contactRecords.map(record => record.dataValues)
+}
+
 async function findWhere(condition) {
     const contactRecords = await ContactModel.findAll({
         where: condition
@@ -31,6 +38,7 @@ async function updateWhere(partialDTO, condition) {
 
 module.exports = {
     create,
+    createMany,
     findWhere,
     deleteWhere,
     updateWhere

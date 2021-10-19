@@ -13,7 +13,7 @@ html(lang="en")
             .main-form
                 .signin-header
                     h1 Tiny TimeZones 
-                    h2.subtitle Handly time notion with teams around the world
+                    h2.subtitle Handle time notion with teams around the world
                 .signin-options
                     .google-signin
                         #g_id_onload(
@@ -30,15 +30,16 @@ html(lang="en")
                             data-logo_alignment='left'
                         )
                     p or
-                    a(href="http://localhost:3000/app")
+                    a(href="http://localhost:3000/app?isGuest=true")
                         button.guest-signin  Try as guest
-        footer.main-footer 
+        footer.common-footer 
             p 
                 span &copy; 2021. Designed &amp; Developed By 
-                    a(href="http://justinsalcedo.com").author-url Justin Salcedo
-                a(href="")
-                    img(src="/assets/github-white.svg", alt="")
-                a(href="") 
-                    img(src="/assets/twitter-white.svg", alt="")
-                a(href="") 
-                    img(src="/assets/linkedin-white.svg", alt="")
+                    a(href=author.website).author-url= author.name
+                a(href=author.github)
+                    img(src="/assets/github-white.svg", alt="My GitHub")
+                a(href=author.twitter) 
+                    img(src="/assets/twitter-white.svg", alt="My Twitter")
+                a(href=author.linkedin) 
+                    img(src="/assets/linkedin-white.svg", alt="My LinkedIn")
+                a(href=author.sourceUrl) Source

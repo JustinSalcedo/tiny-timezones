@@ -2,81 +2,29 @@
 
 const { Component, createContext, createRef, createElement } = React
 
-function getAuthContextValue() {
-    if (sessionStorage.getItem('payload')) {
-        const { user } = decodePayload(sessionStorage.getItem('payload'))
-        sessionStorage.removeItem('payload')
-    
-        setUserAssociatedData(user)
-        Reflect.deleteProperty(user, 'contacts')
-        Reflect.deleteProperty(user, 'clocks')
-        Reflect.deleteProperty(user, 'events')
-    
-        localStorage.setItem('user', JSON.stringify(user))
-        return { user }
-    }
-
-    if (sessionStorage.getItem('user')) {
-        if (!sessionStorage.getItem('clocks')) {
-            const clockService = new ClockAPI()
-            clockService.fetchAll()
-                .then(({ clocks }) => clockService.setList(clocks))
-                .catch(error => console.error(error))
-        }
-
-        if (!sessionStorage.getItem('contacts')) {
-            const contactService = new ContactAPI()
-            contactService.fetchAll()
-                .then(({ contacts }) => contactService.setList(contacts))
-                .catch(error => console.error(error))
-        }
-
-        if (!sessionStorage.getItem('events')) {
-            const eventService = new EventAPI()
-            eventService.fetchAll()
-                .then(({ events }) => eventService.setList(events))
-                .catch(error => console.error(error))
-        }
-    }
-
-    if (!sessionStorage.getItem('payload') ||
-        !localStorage.getItem('user')) {
-        localStorage.setItem('user', null)
-        return 'guest'
-    }
-
-}
-
-function setUserAssociatedData(user) {
-    const { contacts, clocks, events } = user
-    sessionStorage.setItem('contacts', contacts ? JSON.stringify(contacts) : null)
-    sessionStorage.setItem('clocks', clocks ? JSON.stringify(clocks) : null)
-    sessionStorage.setItem('events', events ? JSON.stringify(events) : null)
-}
-
-function getUserAssociatedData() {
-    const contacts = getParsedFromStorage(sessionStorage, 'contacts') || []
-    const clocks = getParsedFromStorage(sessionStorage, 'clocks') || []
-    const events = getParsedFromStorage(sessionStorage, 'events') || []
-
-    return {
-        contacts,
-        clocks,
-        events
-    }
-}
-
 function decodePayload(encoded) {
     const decodedUri = decodeURIComponent(encoded)
     const stringified = window.atob(decodedUri)
     return JSON.parse(stringified)
 }
 
-function getParsedFromStorage(storage, key) {
-    const stringValue = storage.getItem(key)
-    if (stringValue) {
-        return JSON.parse(stringValue)
+function autoDetectTimezone() {
+    const internTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (internTimezone) return internTimezone
+
+    const offsetInMins = new Date().getTimezoneOffset()
+
+    if (offsetInMins === 0) return 'UTC'
+
+    const utcDiffInMins = offsetInMins * -1
+    const detectedTimezones = moment.tz.names().filter(tzName => moment.tz(tzName)._offset === utcDiffInMins)
+
+    if (detectedTimezones.length === 0) {
+        return 'UTC'
     }
+
+    const randomTz = Math.floor(Math.random() * detectedTimezones.length)
+    return detectedTimezones[randomTz]
 }
 
 const AuthContext = createContext()
@@ -84,12 +32,18 @@ const AuthContext = createContext()
 const UserDataContext = createContext()
 
 class App extends Component {
+    constructor(props) {
+        super(props)
+    
+        this.userService = new UserAPI()
+    }
+
     render() {
-        const authContextValue = getAuthContextValue()
+        const { user, isGuest } = this.userService.getUserInfo()
 
         return (
             <div className="app-container">
-                <AuthContext.Provider value={authContextValue}>
+                <AuthContext.Provider value={{ user, isGuest, userService: this.userService }}>
                     <GlobalConfig />
                 </AuthContext.Provider>
             </div>
@@ -104,20 +58,29 @@ class GlobalConfig extends Component {
         super(props)
 
         this.contactService = new ContactAPI()
-        this.eventService = new EventAPI()
+        this.contactKey = 'contacts'
 
-        const { contacts, events } = getUserAssociatedData()
+        this.eventService = new EventAPI()
+        this.eventKey = 'events'
     
         this.state = {
-            localTimeZone: Intl.DateTimeFormat().resolvedOptions().timezone || "America/Los_Angeles",
-            displaySeconds: true,
-            contacts: contacts || [],
-            events: events || []
+            localTimezone: autoDetectTimezone(),
+            displaySeconds: false,
+            darkTheme: window.matchMedia("(prefers-color-scheme: dark)").matches,
+            contacts: [],
+            events: [],
+            expandContacts: false,
+            expandEvents: false,
+            contactsBtn: false,
+            eventsBtn: false,
+            displayConfig: false,
+            displaySessionMenu: false
         }
 
         this.componentIsMounted = createRef(true)
 
         this.changePreferences = this.changePreferences.bind(this)
+        this.toggleTheme = this.toggleTheme.bind(this)
         this.createContact = this.createContact.bind(this)
         this.findContactById = this.findContactById.bind(this)
         this.editContactById = this.editContactById.bind(this)
@@ -126,38 +89,73 @@ class GlobalConfig extends Component {
         this.findEventById = this.findEventById.bind(this)
         this.editEventById = this.editEventById.bind(this)
         this.deleteEventById = this.deleteEventById.bind(this)
+        this.toggleContactsPanel = this.toggleContactsPanel.bind(this)
+        this.toggleEventsPanel = this.toggleEventsPanel.bind(this)
+        this.onContactsTabHover = this.onContactsTabHover.bind(this)
+        this.onEventsTabHover = this.onEventsTabHover.bind(this)
+        this.onBlackoutClicked = this.onBlackoutClicked.bind(this),
+        this.toggleDisplayConfig = this.toggleDisplayConfig.bind(this),
+        this.toggleDisplaySessionMenu = this.toggleDisplaySessionMenu.bind(this)
+        this.closeAllDialogs = this.closeAllDialogs.bind(this)
     }
 
     componentDidMount() {
         this.componentIsMounted.current = true
+        
+        this.contactService.GetAll(this.contactKey)
+            .then(contacts => this.setState({ contacts }))
+            .catch(error => console.log(error))
+
+        this.eventService.GetAll(this.eventKey)
+            .then(events => this.setState({ events }))
+            .catch(error => console.log(error))
+
+        const { localTimezone, displaySeconds, darkTheme } = this.context.user
+        document.body.className = darkTheme ? "dark-theme" : ""
+        this.setState({ localTimezone, displaySeconds, darkTheme })
     }
 
     componentWillUnmount() {
         this.componentIsMounted.current = false
+        this.contactService.AbortAllRequests()
+        this.eventService.AbortAllRequests()
     }
     
     changePreferences(e) {
         const { name, type } = e.target
 
-        if (name === "localTimeZone" || name === "displaySeconds") {
+        if (name === "localTimezone" || name === "displaySeconds") {
             const value = type === "checkbox" ? e.target.checked : e.target.value
             this.setState({
                 [name]: value
             })
+            this.context.userService.savePreferences({
+                [name]: value
+            }, !this.context.isGuest)
         }
     }
 
+    toggleTheme(e) {
+        e.preventDefault()
+
+        this.setState(({ darkTheme }) => {
+            document.body.className = !darkTheme ? "dark-theme" : ""
+            this.context.userService.savePreferences({
+                darkTheme: !darkTheme
+            }, !this.context.isGuest)
+            return {
+                darkTheme: !darkTheme
+            }
+        })
+    }
+
     createContact(newContactData) {
-        this.contactService.create(newContactData)
+        this.contactService.Add(this.contactKey, newContactData)
             .then(newContact => {
                 if (this.componentIsMounted.current) {
-                    this.setState(({ contacts }) => {
-                        const moreContacts = [...contacts, newContact]
-                        this.contactService.setList(moreContacts)
-                        return {
-                            contacts: moreContacts
-                        }
-                    })
+                    this.setState(({ contacts }) => ({
+                        contacts: [...contacts, newContact]
+                    }))
                 }
             })
             .catch(error => console.error(error))
@@ -169,11 +167,11 @@ class GlobalConfig extends Component {
     }
 
     editContactById(id, partialContactData) {
-        this.contactService.update(id, partialContactData)
-            .then(statusCode => {
-                if (statusCode === 200 && this.componentIsMounted.current) {
-                    this.setState(({ contacts }) => {
-                        const newContacts = contacts.map(contact => {
+        this.contactService.Modify(this.contactKey, id, partialContactData)
+            .then(wasModified => {
+                if (wasModified && this.componentIsMounted.current) {
+                    this.setState(({ contacts }) => ({
+                        contacts: contacts.map(contact => {
                             if (contact.id === id) {
                                 return {
                                     ...contact,
@@ -182,45 +180,31 @@ class GlobalConfig extends Component {
                             }
                             return contact
                         })
-                        this.contactService.setList(newContacts)
-                        return {
-                            contacts: newContacts
-                        }
-                    })
+                    }))
                 }
             })
             .catch(error => console.error(error))
     }
 
     deleteContactById(contactId) {
-        this.contactService.delete(contactId)
-            .then(statusCode => {
-                if (statusCode === 200 && this.componentIsMounted.current) {
-                    this.setState(({ contacts }) => {
-                        const contactsLeft = contacts.filter(contact => contact.id !== contactId)
-                        this.contactService.setList(contactsLeft)
-                        return {
-                            contacts: contactsLeft
-                        }
-                    })
+        this.contactService.Remove(this.contactKey, contactId)
+            .then(wasRemoved => {
+                if (wasRemoved && this.componentIsMounted.current) {
+                    this.setState(({ contacts }) => ({
+                        contacts: contacts.filter(contact => contact.id !== contactId)
+                    }))
                 }
             })
             .catch(error => console.error(error))
     }
 
     createEvent(newEventData) {
-        console.log('Our event data is %o', newEventData)
-        this.eventService.create(newEventData)
+        this.eventService.Add(this.eventKey, newEventData)
             .then(newEvent => {
                 if (this.componentIsMounted.current) {
-                    this.setState(({ events }) => {
-                        console.log('The returning event is %o', newEvent)
-                        const moreEvents = [...events, newEvent]
-                        this.eventService.setList(moreEvents)
-                        return {
-                            events: moreEvents
-                        }
-                    })
+                    this.setState(({ events }) => ({
+                        events: [...events, newEvent]
+                    }))
                 }
             })
             .catch(error => console.error(error))
@@ -232,52 +216,123 @@ class GlobalConfig extends Component {
     }
 
     editEventById(id, partialEventData) {
-        this.eventService.update(id, partialEventData)
-            .then(statusCode => {
-                if (statusCode === 200 && this.componentIsMounted.current) {
-                    this.setState(({ events }) => {
-                        const newEvents = events.map(event => {
+        this.eventService.Modify(this.eventKey, id, partialEventData)
+            .then(wasModified => {
+                if (wasModified && this.componentIsMounted.current) {
+                    this.setState(({ events }) => ({
+                        events: events.map(event => {
                             if (event.id === id) {
                                 return {
                                     ...event,
                                     ...partialEventData
                                 }
                             }
-                            
                             return event
                         })
-                        this.eventService.setList(newEvents)
-                        return {
-                            events: newEvents
-                        }
-                    })
+                    }))
                 }
             })
             .catch(error => console.error(error))
     }
 
     deleteEventById(eventId) {
-        this.eventService.delete(eventId)
-            .then(statusCode => {
-                if (statusCode === 200 && this.componentIsMounted.current) {
-                    this.setState(({ events }) => {
-                        const eventsLeft = events.filter(event => event.id !== eventId)
-                        this.eventService.setList(eventsLeft)
-                        return {
-                            events: eventsLeft
-                        }
-                    })
+        this.eventService.Remove(this.eventKey, eventId)
+            .then(wasRemoved => {
+                if (wasRemoved && this.componentIsMounted.current) {
+                    this.setState(({ events }) => ({
+                        events: events.filter(event => event.id !== eventId)
+                    }))
                 }
             })
             .catch(error => console.error(error))
     }
 
+    toggleContactsPanel() {
+        this.setState(({ expandContacts }) => ({
+            expandContacts: !expandContacts,
+            expandEvents: expandContacts && false
+        }))
+    }
+
+    toggleEventsPanel() {
+        this.setState(({ expandEvents }) => ({
+            expandEvents: !expandEvents,
+            expandContacts: expandEvents && false
+        }))
+    }
+
+    onContactsTabHover(isOn) {
+        this.setState(() => ({
+            contactsBtn: isOn
+        }))
+    }
+
+    onEventsTabHover(isOn) {
+        this.setState(() => ({
+            eventsBtn: isOn
+        }))
+    }
+
+    onBlackoutClicked() {
+        this.setState(() => ({
+            expandContacts: false,
+            expandEvents: false
+        }))
+    }
+
+    toggleDisplayConfig() {
+        this.setState(({ displayConfig }) => ({
+            displayConfig: !displayConfig
+        }))
+    }
+
+    toggleDisplaySessionMenu() {
+        this.setState(({ displaySessionMenu }) => ({
+            displaySessionMenu: !displaySessionMenu
+        }))
+    }
+
+    defineOutOfDialog(target, whiteList) {
+        const blackList = ["main-navbar", "blackout-off", "blackout-on", "clock-board", "collapse-tab", "contact-panel", "event-panel", "collapse-tab-last", "main-footer", "bottom-menu"]
+        const classList = target.className.split(' ')
+
+        let isIn = false
+        let isOut = true
+        for (let i = 0; i < classList.length; i++) {
+            isIn = whiteList.includes(classList[i])
+            if (isIn) return false
+            isOut = blackList.includes(classList[i])
+            if (isOut) return true
+        }
+
+        return this.defineOutOfDialog(target.parentElement, whiteList)
+    }
+
+    closeAllDialogs(e) {
+        const isOutOfConfig = this.defineOutOfDialog(e.target, ["main-navbar-button", "main-navbar-config"])
+        if (isOutOfConfig) {
+            this.setState(() => ({
+                displayConfig: false
+            }))
+        }
+
+        const isOutOfSessionMenu = this.defineOutOfDialog(e.target, ["user-session-input", "user-session-menu", "icon-user"])
+        if (isOutOfSessionMenu) {
+            this.setState(() => ({
+                displaySessionMenu: false
+            }))
+        }
+    }
+
     render() {
-        const { localTimeZone, displaySeconds, contacts, events } = this.state
+        const { localTimezone, displaySeconds, contacts, events,
+            expandContacts, expandEvents, contactsBtn, eventsBtn,
+            displayConfig, displaySessionMenu } = this.state
         const userPreferences = {
-            localTimeZone,
+            localTimezone,
             displaySeconds,
-            changePreferences: this.changePreferences
+            changePreferences: this.changePreferences,
+            toggleTheme: this.toggleTheme
         }
 
         return (
@@ -291,45 +346,58 @@ class GlobalConfig extends Component {
                 createEvent: this.createEvent,
                 findEventById: this.findEventById,
                 editEventById: this.editEventById,
-                deleteEventById: this.deleteEventById
+                deleteEventById: this.deleteEventById,
+                displayConfig,
+                displaySessionMenu,
+                toggleDisplayConfig: this.toggleDisplayConfig,
+                toggleDisplaySessionMenu: this.toggleDisplaySessionMenu,
+                closeAllDialogs: this.closeAllDialogs
             }}>
+                <div onClick={(e) => { this.onBlackoutClicked(); this.closeAllDialogs(e); }} className={(expandContacts || expandEvents) ? "blackout-on" : "blackout-off"}></div>
                 <NavBar userPreferences={userPreferences}/>
                 <ClockBoard userPreferences={userPreferences}/>
-                <ContactPanel localTimeZone={localTimeZone} />
-                <EventPanel localTimeZone={localTimeZone} />
-                <Footer />
+                <div
+                    className={"collapse-tab" + (expandContacts ? " tab-open" : "")}
+                    onMouseEnter={() => this.onContactsTabHover(true)}
+                    onMouseLeave={() => this.onContactsTabHover(false)}
+                    onClick={this.closeAllDialogs}>
+                    <button className={"collapse-button collapse-btn-l" + (expandContacts ? " collapse-btn-active" : "") + ((contactsBtn || expandContacts) ? "" : " clps-btn-invisible")} onClick={this.toggleContactsPanel}></button>
+                </div>
+                <ContactPanel localTimezone={localTimezone} expandContacts={expandContacts} />
+                <EventPanel localTimezone={localTimezone} expandEvents={expandEvents} />
+                <div
+                    className={"collapse-tab-last" + (expandEvents ? " tab-open" : "")}
+                    onMouseEnter={() => this.onEventsTabHover(true)}
+                    onMouseLeave={() => this.onEventsTabHover(false)}
+                    onClick={this.closeAllDialogs}>
+                    <button className={"collapse-button collapse-btn-r" + (expandEvents ? " collapse-btn-active" : "") + ((eventsBtn || expandEvents) ? "" : " clps-btn-invisible")} onClick={this.toggleEventsPanel}></button>
+                </div>
+                <Footer
+                    expandContacts={expandContacts}
+                    toggleContactsPanel={this.toggleContactsPanel}
+                    expandEvents={expandEvents}
+                    toggleEventsPanel={this.toggleEventsPanel}
+                    showClockBoard={this.onBlackoutClicked} />
             </UserDataContext.Provider>
         )
     }
 }
 
 class NavBar extends Component {
-    constructor(props) {
-        super(props)
+    static contextType = UserDataContext
     
-        this.state = {
-            displayConfig: false
-        }
-
-        this.toggleDisplayConfig = this.toggleDisplayConfig.bind(this)
-    }
-
-    toggleDisplayConfig() {
-        this.setState(({ displayConfig }) => ({
-            displayConfig: !displayConfig
-        }))
-    }
     
     render() {
-        const { localTimeZone, displaySeconds, changePreferences } = this.props.userPreferences
+        const { localTimezone, displaySeconds, changePreferences, toggleTheme } = this.props.userPreferences
+        const { displayConfig, toggleDisplayConfig, displaySessionMenu, toggleDisplaySessionMenu, closeAllDialogs } = this.context
 
         return (
-            <nav className="main-navbar">
+            <nav className="main-navbar" onClick={closeAllDialogs}>
                 <h1>Tiny TimeZones</h1>
-                <form className="main-navbar-config" style={{ display: this.state.displayConfig ? "flex" : "none" }}>
+                <form className="main-navbar-config" style={{ display: displayConfig ? "flex" : "none" }}>
                     <div>
                         <label>Local time zone</label>
-                        <TimeZoneSelector name="localTimeZone" value={localTimeZone} onChange={changePreferences} />
+                        <TimeZoneSelector name="localTimezone" value={localTimezone} onChange={changePreferences} />
                     </div>
                     <div>
                         <label className="checkbox-container">
@@ -339,15 +407,15 @@ class NavBar extends Component {
                         </label>
                     </div>
                     <div>
-                        <button className="main-navbar-theme">
+                        <button className="main-navbar-theme" onClick={toggleTheme}>
                         <div className="icon icon-darkmode"></div>
                         </button>
                     </div>
                 </form>
-                <button className="main-navbar-button" onClick={this.toggleDisplayConfig}>
+                <button className="main-navbar-button" onClick={toggleDisplayConfig}>
                     <div className="icon icon-settings"></div>
                 </button>
-                <UserSession />
+                <UserSession displaySessionMenu={displaySessionMenu} toggleDisplaySessionMenu={toggleDisplaySessionMenu} />
             </nav>
         )
     }
@@ -359,44 +427,45 @@ class UserSession extends Component {
     constructor(props) {
         super(props)
     
-        this.state = {
-            displaySessionMenu: false
-        }
-
-        this.toggleDisplaySessionMenu = this.toggleDisplaySessionMenu.bind(this)
-    }
-
-    toggleDisplaySessionMenu() {
-        this.setState(({ displaySessionMenu }) => ({
-            displaySessionMenu: !displaySessionMenu
-        }))
+        this.closeSession = this.closeSession.bind(this)
+        this.signUp = this.signUp.bind(this)
     }
     
+    closeSession() {
+        this.context.userService.deleteUserInfo()
+        window.location.href = window.location.origin
+    }
+
+    signUp() {
+        window.location.href = window.location.origin
+    }
+
     render() {
-        const isAuth = this.context.user ? true : false
-        const user = isAuth ? this.context.user : undefined
+        const isAuth = !this.context.isGuest
+        const { user } = this.context
+        const { displaySessionMenu, toggleDisplaySessionMenu } = this.props
 
         return (
             <div className="main-navbar-session">
                 {isAuth ? (
                     <div className="main-navbar-session-logged">
-                        <div className="icon icon-user"></div>
-                        <input type="text" value={user.firstName} onClick={this.toggleDisplaySessionMenu} onChange={() => {}} className="user-session-input"  />
+                        <div className="icon icon-user" onClick={toggleDisplaySessionMenu}></div>
+                        <input type="text" value={user.firstName} onClick={toggleDisplaySessionMenu} onChange={() => {}} className="user-session-input"  />
                         <button>
                             <div className="icon icon-logout"></div>
                         </button>
                     </div>
                 ) : (
                     <div>
-                        Accessing as guest
-                        <button className="main-navbar-signin button-positive">Sign In</button>
+                        <span>Accessing as guest</span>
+                        <button className="main-navbar-signin button-positive" onClick={this.signUp}>Sign In</button>
                     </div>
                 )}
-                {(isAuth && this.state.displaySessionMenu) && (
+                {(isAuth && displaySessionMenu) && (
                     <ul className="user-session-menu">
                         <li>Logged in as {user.firstName}</li>
-                        <li><a href="javascript:void()">Switch account</a></li>
-                        <li><a href="javascript:void()">Close session</a></li>
+                        {/* <li><a href="javascript:void()">Switch account</a></li> */}
+                        <li><a href="#" onClick={this.closeSession}>Close session</a></li>
                     </ul>
                 )}
             </div>
@@ -439,17 +508,18 @@ class TimeZoneSelector extends Component {
 }
 
 class ClockBoard extends Component {
+    static contextType = UserDataContext
+
     constructor(props) {
         super(props)
 
         this.clockService = new ClockAPI()
-
-        const { clocks } = getUserAssociatedData()
+        this.clockKey = 'clocks'
     
         this.state = {
-            clocks: clocks || [],
+            clocks: [],
             newClockData: {
-                timezone: this.props.userPreferences.localTimeZone,
+                timezone: this.props.userPreferences.localTimezone,
                 name: ''
             },
             editedClockData: {},
@@ -474,10 +544,14 @@ class ClockBoard extends Component {
 
     componentDidMount() {
         this.componentIsMounted.current = true
+        this.clockService.GetAll(this.clockKey)
+            .then(clocks => this.setState({ clocks }))
+            .catch(error => console.log(error))
     }
 
     componentWillUnmount() {
         this.componentIsMounted.current = false
+        this.clockService.AbortAllRequests()
     }
 
     changeClockData(e) {
@@ -508,16 +582,12 @@ class ClockBoard extends Component {
         
         const { timezone, name } = this.state.newClockData
         if (timezone && name) {
-            this.clockService.create({ timezone, name })
+            this.clockService.Add(this.clockKey, { timezone, name })
                 .then(newClock => {
                     if (this.componentIsMounted.current) {
-                        this.setState(({ clocks }) => {
-                            const moreClocks = [...clocks, newClock]
-                            this.clockService.setList(moreClocks)
-                            return {
-                                clocks: moreClocks
-                            }
-                        })
+                        this.setState(({ clocks }) => ({
+                            clocks: [...clocks, newClock]
+                        }))
             
                         this.clearClockCreator()
             
@@ -559,11 +629,11 @@ class ClockBoard extends Component {
     }
 
     updateClockById(id, partialClockData) {
-        this.clockService.update(id, partialClockData)
-            .then(statusCode => {
-                if (statusCode === 200 && this.componentIsMounted.current) {
-                    this.setState(({ clocks }) => {
-                        const newClocks = clocks.map(clock => {
+        this.clockService.Modify(this.clockKey, id, partialClockData)
+            .then(wasModified => {
+                if (wasModified && this.componentIsMounted.current) {
+                    this.setState(({ clocks }) => ({
+                        clocks: clocks.map(clock => {
                             if (clock.id === id) {
                                 return {
                                     ...clock,
@@ -573,11 +643,7 @@ class ClockBoard extends Component {
                             
                             return clock
                         })
-                        this.clockService.setList(newClocks)
-                        return {
-                            clocks: newClocks
-                        }
-                    })
+                    }))
                 }
             })
             .catch(error => console.error(error))
@@ -597,12 +663,11 @@ class ClockBoard extends Component {
     }
 
     deleteClockById(clockId) {
-        this.clockService.delete(clockId)
-            .then(statusCode => {
-                if (statusCode === 200 && this.componentIsMounted.current) {
+        this.clockService.Remove(this.clockKey, clockId)
+            .then(wasRemoved => {
+                if (wasRemoved && this.componentIsMounted.current) {
                     this.setState(({ clocks, editedClockData }) => {
                         const clocksLeft = clocks.filter(clock => clock.id !== clockId)
-                        this.clockService.setList(clocksLeft)
                         if (editedClockData.id && clockId === editedClockData.id) {
                             return {
                                 editedClockData: {},
@@ -638,9 +703,11 @@ class ClockBoard extends Component {
         const { newClockData, clocks, displayCreator, editedClockData, editing, displayControls } = this.state
         const { userPreferences } = this.props
         const tickInterval = userPreferences.displaySeconds ? 1000 : 1000 * 5
+
+        const { closeAllDialogs } = this.context
         
         return (
-            <div className="clock-board">
+            <div className="clock-board" onClick={closeAllDialogs}>
                 <div className="clock-board-header">
                     <h2>Clock board</h2>
                     {displayCreator ? (
@@ -870,7 +937,7 @@ class ContactPanel extends Component {
         this.state = {
             newContactData: {
                 name: '',
-                timezone: this.props.localTimeZone
+                timezone: this.props.localTimezone
             },
             editedContactData: {},
             editing: false,
@@ -1000,9 +1067,12 @@ class ContactPanel extends Component {
     render() {
         const contacts = this.context.contacts ? this.context.contacts : []
         const { displayInput, newContactData, editedContactData, editing, displayControls } = this.state
+        const { expandContacts } = this.props
+
+        const { closeAllDialogs } = this.context
 
         return (
-            <div className="contact-panel">
+            <div onClick={closeAllDialogs} className={"contact-panel sidebar-left" + (expandContacts ? "-open" : "-closed")}>
                 <div className="contact-panel-header">
                     <h2>Contacts</h2>
                     {displayInput ? (
@@ -1161,7 +1231,7 @@ class EventPanel extends Component {
     constructor(props) {
         super(props)
     
-        const parsedTime = parseTimeToTimeZone(this.props.localTimeZone)
+        const parsedTime = parseTimeToTimeZone(this.props.localTimezone)
         const timePlusOneHour = new Date(
             parsedTime.getTime() + 1000 * 60 * 60
         )
@@ -1171,7 +1241,7 @@ class EventPanel extends Component {
                 name: '',
                 date: getFormattedDate(timePlusOneHour),
                 time: formatTimer(timePlusOneHour.getHours(), timePlusOneHour.getMinutes()),
-                timezone: this.props.localTimeZone,
+                timezone: this.props.localTimezone,
                 reminder: false,
                 contactIds: []
             },
@@ -1267,7 +1337,8 @@ class EventPanel extends Component {
         const eventToRemind = events.find(event => event.id === eventId)
         
         if (eventToRemind) {
-            const { name, timestamp } = eventToRemind
+            let { name, timestamp } = eventToRemind
+            timestamp = new Date(timestamp)
 
             alert(
                 "It's " + formatTimer(timestamp.getHours(), timestamp.getMinutes()) + '\n'
@@ -1386,9 +1457,12 @@ class EventPanel extends Component {
     render() {
         const events = this.context.events ? this.context.events : []
         const { displayInput, newEventData, editedEventData, editing, displayControls } = this.state
+        const { expandEvents } = this.props
+
+        const { closeAllDialogs } = this.context
 
         return (
-            <div className="event-panel">
+            <div onClick={closeAllDialogs} className={"event-panel sidebar-right" + (expandEvents ? "-open" : "-closed")}>
                 <div className="event-panel-header">
                     <h2>Events</h2>
                     {displayInput ? (
@@ -1743,78 +1817,36 @@ class EventParticipants extends Component {
 }
 
 class Footer extends Component {
+    static contextType = UserDataContext
+
     render() {
+        const { closeAllDialogs } = this.context
+        const { expandContacts, toggleContactsPanel, expandEvents, toggleEventsPanel, showClockBoard } = this.props
+
         return (
-            <footer className="main-footer">
-                <p>
+            <footer onClick={closeAllDialogs} className="main-footer">
+                <p className="main-footer-bar">
                     <span>
                         &copy; 2021. Designed &amp; Developed By <a className="author-url" href="https://justinsalcedo.com">Justin Salcedo</a>
                     </span>
-                    <a><img src="/assets/github-white.svg" /></a>
-                    <a><img src="/assets/twitter-white.svg" /></a>
-                    <a><img src="/assets/linkedin-white.svg" /></a>
-                    <a>Source</a>
+                    <a href="https://github.com/JustinSalcedo"><img src="/assets/github-white.svg" alt="My GitHub" /></a>
+                    <a href="https://twitter.com/imjustinsalcedo"><img src="/assets/twitter-white.svg" alt="My Twitter" /></a>
+                    <a href="https://www.linkedin.com/in/justin-salcedo-370a9b158"><img src="/assets/linkedin-white.svg" alt="My LinkedIn" /></a>
+                    <a href="https://github.com/JustinSalcedo/tiny-timezones">Source</a>
                 </p>
+                <button className={"botton-menu-contacts" + (expandContacts ? " btm-menu-active" : "")} onClick={toggleContactsPanel}>
+                    <div className="icon icon-contacts"></div>
+                    <p>Contacts</p>
+                </button>
+                <button className={"botton-menu-clocks" + ((!expandContacts && !expandEvents) ? " btm-menu-active" : "")} onClick={showClockBoard}>
+                    <div className="icon icon-clock"></div>
+                    <p>Clocks</p>
+                </button>
+                <button className={"botton-menu-events" + (expandEvents ? " btm-menu-active" : "")} onClick={toggleEventsPanel}>
+                    <div className="icon icon-events"></div>
+                    <p>Events</p>
+                </button>
             </footer>
         )
     }
 }
-
-// CRUD methods
-
-const API_BASE_URL = window.location.origin + '/api'
-
-// Contacts
-
-// class ContactAPI {
-//     constructor(idToken, providerTag) {
-//         this.idToken = idToken
-//         this.providerTag = providerTag
-//         this.baseUrl = window.location.origin + '/api' + '/contact'
-//     }
-
-//     async create(contactData) {
-//         try {
-//             const url = this.baseUrl
-    
-//             const requestOptions = {
-//                 method: 'POST',
-//                 mode: 'cors',
-//                 headers: {
-//                     'Authorization': 'Bearer ' + this.idToken,
-//                     'OpenID-Provider': this.providerTag
-//                 },
-//                 body: contactData
-//             }
-    
-//             const response = await fetch(url, requestOptions)
-//             return response.json()
-    
-//         } catch (error) {
-//             console.log('Error creating new contact: %o', error)
-//         }
-//     }
-// }
-
-// async function createContact({ idToken, providerTag, contactData }) {
-//     try {
-//         const url = API_BASE_URL
-//             + '/contact'
-
-//         const requestOptions = {
-//             method: 'POST',
-//             mode: 'cors',
-//             headers: {
-//                 'Authorization': 'Bearer ' + idToken,
-//                 'OpenID-Provider': providerTag
-//             },
-//             body: contactData
-//         }
-
-//         const response = await fetch(url, requestOptions)
-//         return response.json()
-
-//     } catch (error) {
-//         console.log('Error creating new contact: %o', error)
-//     }
-// }

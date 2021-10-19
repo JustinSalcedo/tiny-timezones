@@ -1,5 +1,7 @@
 const store = require('./store')
 
+const { validateTimezone } = require('../utils')
+
 async function authWithProvider(providerTag, payload, options) {
     try {
         switch (providerTag) {
@@ -20,12 +22,12 @@ async function authWithGoogle(payload, options) {
 
     if (userRecord) {
         console.log('Existing user: %o', userRecord)
-        return userRecord
+        return { user: userRecord, isNew: false }
     }
 
     userRecord = await createAccount(payload)
     console.log('New user: %o', userRecord)
-    return userRecord
+    return { user: userRecord, isNew: true }
 }
 
 async function createAccount(tokenPayload) {
@@ -66,6 +68,25 @@ async function findByProviderGivenId(providerTag, id, options) {
     }, include)
 }
 
+// TODO: Update accounts with fresher data
+
+async function updatePreferencesById(id, partialData) {
+    const { localTimezone, displaySeconds, darkTheme } = partialData
+
+    const userDTO = {}
+    if (localTimezone) userDTO.localTimezone = validateTimezone(localTimezone)
+    if (displaySeconds !== undefined) userDTO.displaySeconds = !!displaySeconds
+    if (darkTheme !== undefined) userDTO.darkTheme = !!darkTheme
+
+    const [ nRows ] = await store.updateWhere(userDTO, { id })
+
+    if (nRows === 1) {
+        return true
+    } else if (nRows === 0) {
+        return false
+    } else throw new Error('More than one record were updated')
+}
+
 function determingEagerLoading(options) {
     if (options) {
         const include = []
@@ -85,5 +106,6 @@ function determingEagerLoading(options) {
 
 module.exports = {
     authWithProvider,
-    findByProviderGivenId
+    findByProviderGivenId,
+    updatePreferencesById
 }

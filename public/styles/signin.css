@@ -1,6 +1,7 @@
 @import './fonts.css';
 @import './colors.css';
 @import './icons.css';
+@import './animations.css';
 
 .signin-container {
     display: flex;
@@ -39,4 +40,28 @@
 
 .guest-signin {
     padding: .5rem .75rem;
+}
+
+.common-footer {
+    display: flex;
+    flex-direction: row;
+}
+
+.common-footer p {
+    margin: 0%;
+    font-size: .75rem;
+}
+
+.common-footer p > *:not(.author-url) {
+    padding: 0% .75rem;
+}
+
+.common-footer img {
+    height: .75rem;
+}
+
+.common-footer {
+    align-items: center;
+    justify-content: center;
+    height: 40px;
 }

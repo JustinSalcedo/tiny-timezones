@@ -1,12 +1,15 @@
 const api = require('./api')
 const reactApp = require('./app')
 
+const { author } = require('../config')
+
 function loadRoutes(app) {
 
     app.get('/', (req, res) => {
         const templateParams = {
             title: 'Tiny TimeZones',
-            reactEnv: (process.env.NODE_ENV === 'development') ? 'development' : 'production.min'
+            reactEnv: (process.env.NODE_ENV === 'development') ? 'development' : 'production.min',
+            author
         }
 
         res.render('index', templateParams)

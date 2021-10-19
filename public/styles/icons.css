@@ -1,17 +1,41 @@
 :root {
     --navbar-icon-color: hsl(210, 40%, 70%);
     --navbar-icon-color-hover: hsl(210, 40%, 60%);
+    
+    --mini-icon-color: hsl(210, 40%, 70%);
+    --mini-icon-color-hover: hsl(210, 40%, 60%);
+
     --delete-icon-color: hsl(10, 80%, 72%);
     --delete-icon-color-hover: hsl(10, 80%, 67%);
+
+    --darkmode-alt: hsl(0, 0%, 100%);
+    --darkmode-alt-hover: hsl(210, 40%, 60%);
+}
+
+body.dark-theme {
+    --navbar-icon-color: hsl(207, 43%, 46%);
+    --navbar-icon-color-hover: hsl(207, 45%, 51%);
+    
+    --mini-icon-color: hsl(207, 80%, 45%);
+    --mini-icon-color-hover: hsl(207, 80%, 50%);
+
+    --delete-icon-color: hsl(0, 65%, 55%);
+    --delete-icon-color-hover: hsl(0, 65%, 60%);
+
+    --darkmode-alt: hsl(0, 0%, 100%);
+    --darkmode-alt-hover: hsl(48, 100%, 53%);
 }
 
 .icon {
     display: inline-block;
-    background-color: var(--navbar-icon-color);
     mask-size: cover;
 }
 
-.icon:hover, .icon:focus {
+.main-navbar .icon, .main-footer .icon {
+    background-color: var(--navbar-icon-color);
+}
+
+.main-navbar .icon:hover, .main-navbar .icon:focus {
     background-color: var(--navbar-icon-color-hover);
 }
 
@@ -29,6 +53,16 @@
     margin-top: 4px;
 }
 
+@media screen and (max-width: 1279px) {
+    .icon-darkmode {
+        background-color: var(--darkmode-alt) !important;
+    }
+
+    .icon-darkmode:hover, .icon-darkmode:focus {
+        background-color: var(--darkmode-alt-hover) !important;
+    }
+}
+
 .icon-user {
     mask: url("../assets/user.svg");
 }
@@ -42,6 +76,16 @@
 .icon-user, .icon-logout {
     width: 2rem;
     height: 2rem;
+}
+
+.event-controls .icon, .contact-controls .icon, .main-clock-controls .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: var(--mini-icon-color);
+}
+
+.event-controls .icon:hover, .contact-controls .icon:hover, .main-clock-controls .icon:hover {
+    background-color: var(--mini-icon-color-hover);
 }
 
 .icon-reminder-on {
@@ -58,14 +102,35 @@
 
 .icon-delete {
     mask: url("../assets/delete.svg");
-    background-color: var(--delete-icon-color);
+    background-color: var(--delete-icon-color) !important;
 }
 
 .icon-delete:hover, .icon-delete:focus {
-    background-color: var(--delete-icon-color-hover);
+    background-color: var(--delete-icon-color-hover) !important;
 }
 
-.event-controls .icon, .contact-controls .icon, .main-clock-controls .icon {
-    width: 1.25rem;
-    height: 1.25rem;
+.main-footer button .icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    mask-size: cover;
+}
+
+.main-footer button .icon-events {
+    width: 2rem;
+}
+
+.main-footer button:hover .icon, .main-footer button.btm-menu-active .icon {
+    background-color: var(--navbar-icon-color-hover)
+}
+
+.icon-events {
+    mask: url("../assets/events.svg");
+}
+
+.icon-clock {
+    mask: url("../assets/clock.svg");
+}
+
+.icon-contacts {
+    mask: url("../assets/contacts.svg");
 }

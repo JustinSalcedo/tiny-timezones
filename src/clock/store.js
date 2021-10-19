@@ -9,6 +9,13 @@ async function create(userId, clockDTO) {
     return clockRecord
 }
 
+async function createMany(userId, clockDTOs) {
+    const parsedClockData = clockDTOs.map(clock => ({ ...clock, userId }))
+    const clockRecords = await ClockModel.bulkCreate(parsedClockData, { validate: true })
+
+    return clockRecords.map(record => record.dataValues)
+}
+
 async function findWhere(condition) {
     const clockRecords = await ClockModel.findAll({
         where: condition
@@ -31,6 +38,7 @@ async function updateWhere(partialDTO, condition) {
 
 module.exports = {
     create,
+    createMany,
     findWhere,
     deleteWhere,
     updateWhere

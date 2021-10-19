@@ -15,26 +15,63 @@ async function create(userId, eventDTO) {
     })
 
     if (contactIds && contactIds.length > 0) {
-        const contactRows = await ContactModel.findAll({
-            where: {
-                id: {
-                    [Op.or]: contactIds
-                }
-            }
-        })
-
-        await eventRow.addContacts(contactRows)
-        const { dataValues: eventRecord } = await EventModel.findByPk(eventRow.dataValues.id, {
-            include: {
-                model: ContactModel,
-                attributes: ['id']
-            }
-        })
-
-        return eventRecord
+        return createWithContacts(eventRow, contactIds)
     }
 
     const { dataValues: eventRecord } = eventRow
+    return eventRecord
+}
+
+async function createMany(userId, eventDTOs) {
+    const noContactsDTOs = eventDTOs
+        .filter(event => (!event.contactIds || event.contactIds.length === 0))
+        .map(({ name, timezone, timestamp, reminder }) => ({
+            name,
+            timezone,
+            timestamp,
+            reminder,
+            userId
+        }))
+
+    if (noContactsDTOs.length === eventDTOs.length) {
+        const eventRecords = await EventModel.bulkCreate(noContactsDTOs, { validate: true })
+        return eventRecords.map(record => record.dataValues)
+    } else {
+        const withContactDTOs = eventDTOs
+            .filter(event => (event.contactIds && event.contactIds.length > 0))
+            .map(({ name, timezone, timestamp, reminder, contactIds }) => ({
+                name,
+                timezone,
+                timestamp,
+                reminder,
+                contactIds
+            }))
+
+        const withContactRecords = await Promise.all(withContactDTOs.map(async eventDTO => await create(userId, eventDTO)))
+        const noContactRecords = (await EventModel.bulkCreate(noContactsDTOs, { validate: true }))
+            .map(record => record.dataValues)
+
+        return withContactRecords.concat(noContactRecords)
+    }
+}
+
+async function createWithContacts(eventRow, contactIds) {
+    const contactRows = await ContactModel.findAll({
+        where: {
+            id: {
+                [Op.or]: contactIds
+            }
+        }
+    })
+
+    await eventRow.addContacts(contactRows)
+    const { dataValues: eventRecord } = await EventModel.findByPk(eventRow.dataValues.id, {
+        include: {
+            model: ContactModel,
+            attributes: ['id']
+        }
+    })
+
     return eventRecord
 }
 
@@ -89,6 +126,7 @@ async function updateWhere(partialDTO, condition) {
 
 module.exports = {
     create,
+    createMany,
     findWhere,
     deleteWhere,
     updateWhere

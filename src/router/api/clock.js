@@ -10,7 +10,7 @@ function clock(app) {
         '/',
         async (req, res, next) => {
             try {
-                const { id } = req.session
+                const id = req.session.userId
                 const clockRecords = await clockService.findByUserId(id)
 
                 if (!clockRecords) {
@@ -19,7 +19,7 @@ function clock(app) {
 
                 return res.status(200).json({ clocks: clockRecords })
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -29,8 +29,19 @@ function clock(app) {
         '/',
         async (req, res, next) => {
             try {
-                const { id } = req.session
-                const { name, timezone } = req.body
+                const id = req.session.userId
+                const { name, timezone, clocks } = req.body
+
+                if (clocks) {
+                    const clockRecords = await clockService.createManyClocks(id, clocks)
+
+                    if (!clockRecords) {
+                        return res.status(400).json({ error: 'Clocks could not be created' })
+                    }
+    
+                    return res.status(201).json({ clocks: clockRecords })
+                }
+                
                 const clockRecord = await clockService.createClock(id, { name, timezone })
 
                 if (!clockRecord) {
@@ -40,7 +51,7 @@ function clock(app) {
                 return res.status(201).json(clockRecord)
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -50,7 +61,7 @@ function clock(app) {
         '/:clockId',
         async (req, res, next) => {
             try {
-                const { id: userId } = req.session
+                const { userId } = req.session
                 const { clockId } = req.params
                 
                 if (Object.keys(req.body).length === 0) {
@@ -66,7 +77,7 @@ function clock(app) {
                 return res.status(200).end()
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -76,7 +87,7 @@ function clock(app) {
         '/:clockId',
         async (req, res, next) => {
             try {
-                const { id: userId } = req.session
+                const { userId } = req.session
                 const { clockId } = req.params
 
                 await clockService.deleteOneClock(userId, clockId)
@@ -84,7 +95,7 @@ function clock(app) {
                 return res.status(200).end()
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }

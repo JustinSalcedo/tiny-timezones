@@ -5,6 +5,7 @@ const auth = require('./auth')
 const clock = require('./clock')
 const contact = require('./contact')
 const event = require('./event')
+const user = require('./user')
 
 function api(app) {
     app.use('/api', route)
@@ -13,6 +14,7 @@ function api(app) {
     clock(route)
     contact(route)
     event(route)
+    user(route)
 }
 
 module.exports = api

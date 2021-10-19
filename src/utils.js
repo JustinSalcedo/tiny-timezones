@@ -1,4 +1,4 @@
-const { providerTags } = require('./config')
+const { providerTags, defaultTimezone } = require('./config')
 const moment = require('moment')
 
 const encodePayloadToURISafe = (payload) => {
@@ -33,7 +33,7 @@ const getOpenIdProvider = (req) => {
 const validateTimezone = (timezone) => {
     let validTimezone = timezone
     if (!timezone || !moment.tz.names().includes(timezone)) {
-        validTimezone = config.defaultTimezone
+        validTimezone = defaultTimezone
     }
 
     return validTimezone

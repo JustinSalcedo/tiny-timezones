@@ -1,6 +1,8 @@
 const Sequelize = require('sequelize')
 const db = require('../database')
 
+const { defaultTimezone } = require('../config')
+
 const User = db.define('user', {
     firstName: {
         type: Sequelize.STRING,
@@ -36,6 +38,20 @@ const User = db.define('user', {
     },
     openid_provider_lang: {
         type: Sequelize.STRING
+    },
+
+    // Preferences
+    localTimezone: {
+        type: Sequelize.STRING,
+        defaultValue: defaultTimezone
+    },
+    displaySeconds: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
+    },
+    darkTheme: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
     }
 }, {
     indexes: [

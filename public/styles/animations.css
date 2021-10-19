@@ -1,0 +1,48 @@
+/* Mobile only */
+
+@media screen and (max-width: 525px) {
+
+}
+
+
+/* Tablet only */
+@media screen and (min-width: 526px) and (max-width: 1279px) {
+
+}
+
+
+/* Mobile and tablet */
+
+@media screen and (max-width: 1279px) {
+    /* Collapsible sidebars */
+
+    .contact-panel, .event-panel,
+    .collapse-tab, .collapse-tab-last {
+        transition: 0.5s;
+    }
+
+    /* Contact panel */
+
+    .contact-panel-header, .contact-panel-body {
+        transition: 0.2s;
+    }
+
+    /* Event panel */
+
+    .event-panel-header, .event-panel-body {
+        transition: 0.2s;
+    }
+}
+
+
+/* Desktop only */
+
+@media screen and (min-width: 1280px) {
+
+}
+
+/* All devices */
+
+input, select, button {
+    transition: 0.2s;
+}

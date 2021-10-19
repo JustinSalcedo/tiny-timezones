@@ -19,6 +19,12 @@ async function findWhere(condition, include) {
     }
 }
 
+async function updateWhere(partialDTO, condition) {
+    return UserModel.update(partialDTO, {
+        where: condition
+    })
+}
+
 function parseUserRecord(userDTO) {
     if (userDTO) {
         const parsedRecord = {...userDTO}
@@ -44,5 +50,6 @@ function parseUserRecord(userDTO) {
 
 module.exports = {
     create,
-    findWhere
+    findWhere,
+    updateWhere
 }

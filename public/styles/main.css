@@ -108,26 +108,3 @@ select[multiple] {
     width: 4px;
     height: 8px;
 }
-
-/* Main footer */
-
-.main-footer {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-}
-
-.main-footer p {
-    margin: 0%;
-    font-size: .75rem;
-}
-
-.main-footer p > *:not(.author-url) {
-    padding: 0% .75rem;
-}
-
-.main-footer img {
-    height: .75rem;
-}

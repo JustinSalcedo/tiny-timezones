@@ -1,42 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-
-@font-face {
-    font-family: Nunito;
-    src: url('./fonts/nunito.regular.ttf');
-}
-
-@font-face {
-    font-family: NunitoBold;
-    src: url('./fonts/nunito.bold.ttf');
-}
-
-@font-face {
-    font-family: NunitoLight;
-    src: url('./fonts/nunito.light.ttf');
-}
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap');
 
 :root {
     --pnl-item-name-weight: bold;
-    --pnl-item-name-family: NunitoBold;
 
     --pnl-item-tz-weight: lighter;
-    --pnl-item-tz-family: NunitoLight;
 }
 
 /* Defaults */
 
 body {
-    font-family: Nunito, sans-serif;
-}
-
-h1 {
-    font-family: NunitoBold, sans-serif;
+    font-family: 'Nunito', sans-serif;
 }
 
 h2 {
     text-transform: uppercase;
     font-weight: lighter;
-    font-family: NunitoLight, sans-serif;
     letter-spacing: 2px;
 }
 
@@ -53,12 +32,10 @@ h2.subtitle {
 
 .event-name, .contact-name {
     font-weight: var(--pnl-item-name-weight);
-    font-family: var(--pnl-item-name-family);
 }
 
 .event-timezone, .contact-timezone {
     font-weight: var(--pnl-item-tz-weight);
-    font-family: var(--pnl-item-tz-family);
     font-size: .875rem;
 }
 
@@ -67,9 +44,26 @@ h2.subtitle {
 
 /* Main NavBar */
 
+@media screen and (max-width: 525px) {
+    .main-footer button p {
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding-top: 4px;
+    }
+
+    .main-footer button:hover p, .main-footer button.btm-menu-active p {
+        font-weight: bold;
+    }
+}
+
 .user-session-menu a:hover {
-    font-family: NunitoBold;
     font-weight: bold;
+}
+
+@media screen and (max-width: 1279px) {
+    .main-navbar-config label {
+        font-weight: bold;
+    }
 }
 
 /* Main Clock */
@@ -90,7 +84,6 @@ h2.subtitle {
 
 .main-clock-timezone {
     font-size: .75rem;
-    font-family: NunitoLight, sans-serif;
     font-weight: lighter;
     text-transform: uppercase;
     letter-spacing: 2px;

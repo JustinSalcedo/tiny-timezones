@@ -10,7 +10,7 @@ function contact(app) {
         '/',
         async (req, res, next) => {
             try {
-                const { id } = req.session
+                const id = req.session.userId
                 const contactRecords = await contactService.findByUserId(id)
 
                 if (!contactRecords) {
@@ -19,7 +19,7 @@ function contact(app) {
 
                 return res.status(200).json({ contacts: contactRecords })
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -29,8 +29,19 @@ function contact(app) {
         '/',
         async (req, res, next) => {
             try {
-                const { id } = req.session
-                const { name, timezone } = req.body
+                const id = req.session.userId
+                const { name, timezone, contacts } = req.body
+
+                if (contacts) {
+                    const contactRecords = await contactService.createManyContacts(id, contacts)
+    
+                    if (!contactRecords) {
+                        return res.status(400).json({ error: 'Contacts could not be created' })
+                    }
+    
+                    return res.status(201).json({ contacts: contactRecords })
+                }
+                
                 const contactRecord = await contactService.createContact(id, { name, timezone })
 
                 if (!contactRecord) {
@@ -40,7 +51,7 @@ function contact(app) {
                 return res.status(201).json(contactRecord)
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -50,7 +61,7 @@ function contact(app) {
         '/:contactId',
         async (req, res, next) => {
             try {
-                const { id: userId } = req.session
+                const { userId } = req.session
                 const { contactId } = req.params
                 
                 if (Object.keys(req.body).length === 0) {
@@ -66,7 +77,7 @@ function contact(app) {
                 return res.status(200).end()
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }
@@ -76,7 +87,7 @@ function contact(app) {
         '/:contactId',
         async (req, res, next) => {
             try {
-                const { id: userId } = req.session
+                const { userId } = req.session
                 const { contactId } = req.params
 
                 await contactService.deleteOneContact(userId, contactId)
@@ -84,7 +95,7 @@ function contact(app) {
                 return res.status(200).end()
 
             } catch (error) {
-                console.log('Error in %s: %o', req.path, error)
+                console.log('Error in %s: %o', req.originalUrl, error)
                 return next(error)
             }
         }

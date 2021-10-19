@@ -9,11 +9,21 @@ html(lang="en")
         link(rel="stylesheet", href="styles/app.css")
     body
         #root
-        script(src="https://momentjs.com/downloads/moment.min.js")
-        script(src="https://momentjs.com/downloads/moment-timezone-with-data-10-year-range.min.js")
-        script(src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js")
-        script(src="https://unpkg.com/react@17/umd/react." + reactEnv + ".js", crossorigin)
-        script(src="https://unpkg.com/react-dom@17/umd/react-dom." + reactEnv + ".js", crossorigin)
+        //- script(src="https://momentjs.com/downloads/moment.min.js")
+        //- script(src="https://momentjs.com/downloads/moment-timezone-with-data-10-year-range.min.js")
+        //- script(src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js")
+        //- script(src="https://unpkg.com/react@17/umd/react." + reactEnv + ".js", crossorigin)
+        //- script(src="https://unpkg.com/react-dom@17/umd/react-dom." + reactEnv + ".js", crossorigin)
+        
+        //- Offline dependencies
+        script(src="../../scripts/qs.min.js") 
+        script(src="scripts/moment.min.js")
+        script(src="scripts/moment-data-10.min.js")
+        script(src="scripts/uuid.min.js")
+        script(src="scripts/react-development.js")
+        script(src="scripts/react-dom-development.js")  
+        //- 
+
         script(src="scripts/api.js") 
         script(src="scripts/components/App.js")
         script.

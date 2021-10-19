@@ -14,6 +14,15 @@ async function createContact(userId, contactData) {
     return store.create(userId, contactDTO)
 }
 
+async function createManyContacts(userId, contactsData) {
+    return store.createMany(userId, contactsData.map(contactData => {
+        let { timezone, name } = contactData
+        timezone = validateTimezone(timezone)
+    
+        return { timezone, name }
+    }))
+}
+
 async function findByUserId(userId) {
     return store.findWhere({
         userId
@@ -48,6 +57,7 @@ async function deleteOneContact(userId, contactId) {
 
 module.exports = {
     createContact,
+    createManyContacts,
     findByUserId,
     updateOneContact,
     deleteOneContact
