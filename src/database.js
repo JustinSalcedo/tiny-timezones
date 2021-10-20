@@ -1,6 +1,8 @@
 const Sequelize = require('sequelize')
-module.exports = new Sequelize('tiny-timezones', 'postgres', 'abcd1234', {
-    host: 'localhost',
+const { database } = require('./config')
+
+module.exports = new Sequelize(database.name, database.user, database.password, {
+    host: database.host,
     dialect: 'postgres',
 
     pool: {

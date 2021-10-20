@@ -10,7 +10,9 @@ function loadRoutes(app) {
             title: 'Tiny TimeZones',
             reactEnv: (process.env.NODE_ENV === 'development') ? 'development' : 'production.min',
             env: process.env.NODE_ENV,
-            author
+            author,
+            domain,
+            googleId: google.clientId
         }
 
         res.render('index', templateParams)
@@ -19,8 +21,6 @@ function loadRoutes(app) {
     app.get('/callback', (req, res) => {
         const templateParams = {
             title: 'Tiny TimeZones',
-            domain,
-            googleId: google.clientId
         }
 
         res.render('callback', templateParams)

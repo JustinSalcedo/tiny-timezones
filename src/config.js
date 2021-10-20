@@ -22,6 +22,7 @@ module.exports = {
         checkExpInterval: 15 * 60 * 1000
     },
     database: {
+        host: process.env.POSTGRESQL_HOST,
         user: process.env.POSTGRESQL_USER,
         password: process.env.POSTGRESQL_PASSWORD,
         name: process.env.POSTGRESQL_DB_NAME,
