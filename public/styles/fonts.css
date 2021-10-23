@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu&display=swap');
 
 :root {
     --pnl-item-name-weight: bold;
@@ -25,6 +26,10 @@ h2.subtitle {
     font-size: 1.125rem;
 }
 
+button, select, input {
+    font-family: 'Ubuntu', sans-serif;
+}
+
 
 /* App fonts */
 
@@ -42,9 +47,23 @@ h2.subtitle {
 
 /* Specific components */
 
-/* Main NavBar */
+@media screen and (max-width: 407px) {
+    /* Main NavBar */
+
+    .main-navbar h1 {
+        font-size: 1.25rem;
+    }
+
+    /* Side panels */
+
+    .contact-panel h2, .event-panel h2 {
+        font-size: 1.25rem;
+    }
+}
 
 @media screen and (max-width: 525px) {
+    /* Main footer */
+
     .main-footer button p {
         text-transform: uppercase;
         letter-spacing: 1px;

@@ -405,6 +405,9 @@ class NavBar extends Component {
                             <input type="checkbox" name="displaySeconds" checked={displaySeconds} onChange={changePreferences} />
                             <span className="checkmark"></span>
                         </label>
+                        <button className="main-navbar-theme alt-button" onClick={toggleTheme}>
+                        <div className="icon icon-darkmode"></div>
+                        </button>
                     </div>
                     <div>
                         <button className="main-navbar-theme" onClick={toggleTheme}>
@@ -750,6 +753,11 @@ class ClockBoard extends Component {
                             )
                         })}
                     </ul>
+                    <div className="break-decorator">
+                        <p>
+                        { (clocks && clocks.length > 0) ? '...' : 'Start creating custom clocks. Click on "Add new"' }
+                        </p>
+                    </div>
                 </div>
             </div>
         )
@@ -784,7 +792,7 @@ class ClockCreator extends Component {
         return (
             <div className="clock-creator">
                 <h3>Create a new clock</h3>
-                <form onSubmit={edited ? this.editClock : this.createClock}>
+                <form onSubmit={edited ? this.editClock : this.createClock} autoComplete="off">
                     <div>
                         <label htmlFor="name">Choose a clock name</label>
                         <input type="text" name="name" value={clockData.name} onChange={changeClockData} />
@@ -1113,6 +1121,9 @@ class ContactPanel extends Component {
                             </li>
                         ))}
                     </ul>
+                    <div className="break-decorator">
+                        <p>...</p>
+                    </div>
                 </div>
             </div>
         )
@@ -1146,7 +1157,7 @@ class ContactInput extends Component {
 
         return (
             <div className="contact-input">
-                <form onSubmit={edited ? this.editContact : this.createContact}>
+                <form onSubmit={edited ? this.editContact : this.createContact} autoComplete="off">
                     <div>
                         <label htmlFor="name">Contact name</label>
                         <input type="text" name="name" value={contactData.name} onChange={changeContactData} />
@@ -1507,6 +1518,9 @@ class EventPanel extends Component {
                                     deleteEventById={this.deleteEventById} />
                                 </li>
                             ))}
+                            <div className="break-decorator">
+                                <p>...</p>
+                            </div>
                         </ul>)
                     : (
                         <p>No upcoming events</p>
@@ -1574,7 +1588,7 @@ class EventInput extends Component {
 
         return (
             <div className="event-input">
-                <form onSubmit={edited ? this.editEvent : this.createEvent}>
+                <form onSubmit={edited ? this.editEvent : this.createEvent} autoComplete="off">
                     <div>
                         <label htmlFor="name">Event name</label>
                         <input type="text" name="name" value={eventData.name} onChange={changeEventData} />

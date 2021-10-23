@@ -594,6 +594,11 @@ var NavBar = function (_Component3) {
                             'Show seconds',
                             React.createElement('input', { type: 'checkbox', name: 'displaySeconds', checked: displaySeconds, onChange: changePreferences }),
                             React.createElement('span', { className: 'checkmark' })
+                        ),
+                        React.createElement(
+                            'button',
+                            { className: 'main-navbar-theme alt-button', onClick: toggleTheme },
+                            React.createElement('div', { className: 'icon icon-darkmode' })
                         )
                     ),
                     React.createElement(
@@ -1083,6 +1088,15 @@ var ClockBoard = function (_Component6) {
                                     deleteClockById: _this20.deleteClockById })
                             );
                         })
+                    ),
+                    React.createElement(
+                        'div',
+                        { className: 'break-decorator' },
+                        React.createElement(
+                            'p',
+                            null,
+                            clocks && clocks.length > 0 ? '...' : 'Start creating custom clocks. Click on "Add new"'
+                        )
                     )
                 )
             );
@@ -1150,7 +1164,7 @@ var ClockCreator = function (_Component7) {
                 ),
                 React.createElement(
                     'form',
-                    { onSubmit: edited ? this.editClock : this.createClock },
+                    { onSubmit: edited ? this.editClock : this.createClock, autoComplete: 'off' },
                     React.createElement(
                         'div',
                         null,
@@ -1603,6 +1617,15 @@ var ContactPanel = function (_Component10) {
                                     deleteContactById: _this26.deleteContactById })
                             );
                         })
+                    ),
+                    React.createElement(
+                        'div',
+                        { className: 'break-decorator' },
+                        React.createElement(
+                            'p',
+                            null,
+                            '...'
+                        )
                     )
                 )
             );
@@ -1665,7 +1688,7 @@ var ContactInput = function (_Component11) {
                 { className: 'contact-input' },
                 React.createElement(
                     'form',
-                    { onSubmit: edited ? this.editContact : this.createContact },
+                    { onSubmit: edited ? this.editContact : this.createContact, autoComplete: 'off' },
                     React.createElement(
                         'div',
                         null,
@@ -2151,7 +2174,16 @@ var EventPanel = function (_Component13) {
                                     startEventEditor: _this30.startEventEditor,
                                     deleteEventById: _this30.deleteEventById })
                             );
-                        })
+                        }),
+                        React.createElement(
+                            'div',
+                            { className: 'break-decorator' },
+                            React.createElement(
+                                'p',
+                                null,
+                                '...'
+                            )
+                        )
                     ) : React.createElement(
                         'p',
                         null,
@@ -2273,7 +2305,7 @@ var EventInput = function (_Component15) {
                 { className: 'event-input' },
                 React.createElement(
                     'form',
-                    { onSubmit: edited ? this.editEvent : this.createEvent },
+                    { onSubmit: edited ? this.editEvent : this.createEvent, autoComplete: 'off' },
                     React.createElement(
                         'div',
                         null,
