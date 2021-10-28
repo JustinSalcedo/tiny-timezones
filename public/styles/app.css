@@ -3,8 +3,11 @@
 @import './icons.css';
 @import './animations.css';
 
-
 /* General layout */
+
+#root {
+    overflow: hidden;
+}
 
 @media screen and (max-height: 569px) {
     /* Event panel */
@@ -255,6 +258,10 @@
         height: calc(100vh - 80px);
         z-index: 3;
     }
+
+    .blackout-on.keyboard-open {
+        height: 100vh;
+    }
     
     /* Collapsible sidebars */
 
@@ -283,6 +290,10 @@
         height: calc(100vh - 80px);
     }
 
+    .contact-panel.sidebar-left-open.keyboard-open {
+        height: 100vh;
+    }
+
     .contact-panel.sidebar-left-open .contact-panel-header {
         overflow: hidden;
         position: fixed;
@@ -297,6 +308,10 @@
         margin-top: 114px;
         padding: 0% 20px;
         max-height: calc(100vh - 114px - 80px);
+    }
+
+    .contact-panel.sidebar-left-open.keyboard-open .contact-panel-body {
+        max-height: calc(100vh - 114px);
     }
 
     /* Event panel */
@@ -324,6 +339,10 @@
         height: calc(100vh - 80px);
     }
 
+    .event-panel.sidebar-right-open.keyboard-open {
+        height: 100vh;
+    }
+
     .event-panel .event-panel-header {
         overflow: hidden;
         position: fixed;
@@ -337,6 +356,10 @@
         margin-top: 114px;
         padding: 0% 20px;
         max-height: calc(100vh - 114px - 16px - 80px);
+    }
+
+    .event-panel.keyboard-open .event-panel-body {
+        max-height: calc(100vh - 114px - 16px);
     }
 
     .event-panel > p {
@@ -353,12 +376,32 @@
         width: 100vw;
     }
 
+    .clock-board.keyboard-open {
+        height: calc(100vh - 80px - 24px);
+    }
+
     .clock-board-header h2 {
         display: none;
     }
 
+    .clock-creator h3 {
+        margin-top: 0px;
+    }
+
     .clock-board-body {
         max-height: calc(100vh - 80px - 72px - 80px);
+    }
+
+    .clock-board.open-creator .clock-board-header {
+        height: 208px;
+    }
+
+    .clock-board.open-creator .clock-board-body {
+        max-height: calc(100vh - 80px - 208px - 80px);
+    }
+
+    .clock-board.open-creator.keyboard-open .clock-board-body {
+        max-height: calc(100vh - 80px - 208px - 44px);
     }
 
     /* Main footer */
@@ -567,6 +610,10 @@
         max-height: calc(100vh - 114px - 40px);
     }
 
+    .contact-panel.keyboard-open .contact-panel-body {
+        max-height: calc(100vh - 114px);
+    }
+
     /* Event panel */
 
     .event-panel {
@@ -607,6 +654,10 @@
         max-height: calc(100vh - 114px - 16px - 40px);
     }
 
+    .event-panel.keyboard-open .event-panel-body {
+        max-height: calc(100vh - 114px - 16px);
+    }
+
     .event-panel > p {
         margin-top: 1rem;
     }
@@ -621,12 +672,32 @@
         width: calc(100vw - 80px);
     }
 
+    .clock-board.keyboard-open {
+        height: calc(100vh - 108px - 24px);
+    }
+
     .clock-board-header {
-        z-index: 1;
+        padding-bottom: 1rem;
+    }
+
+    .clock-creator h3 {
+        margin-top: 0px;
     }
 
     .clock-board-body {
-        max-height: calc(100vh - 80px - 114px - 40px);
+        max-height: calc(100vh - 80px - 130px - 40px);
+    }
+
+    .clock-board.open-creator .clock-board-header {
+        height: 148px;
+    }
+
+    .clock-board.open-creator .clock-board-body {
+        max-height: calc(100vh - 80px - 180px - 40px);
+    }
+
+    .clock-board.open-creator.keyboard-open .clock-board-body {
+        max-height: calc(100vh - 80px - 180px);
     }
 
     /* Main footer */
@@ -681,6 +752,10 @@
         ". contact-panel clock-board event-panel ."
         "main-footer main-footer main-footer main-footer main-footer";
         justify-content: stretch;
+    }
+
+    .app-container.keyboard-open {
+        grid-template-rows: 80px calc(100vh - 80px) 40px;
     }
 
     /* Main NavBar */
@@ -752,6 +827,10 @@
         max-height: calc(100vh - 80px - 114px - 40px);
     }
 
+    .contact-panel.keyboard-open .contact-panel-body {
+        max-height: calc(100vh - 80px - 114px);
+    }
+
     /* Event panel */
 
     .event-panel-header {
@@ -771,6 +850,10 @@
         max-height: calc(100vh - 80px - 114px - 16px - 40px);
     }
 
+    .event-panel.keyboard-open .event-panel-body {
+        max-height: calc(100vh - 80px - 114px - 16px);
+    }
+
     .event-list > p {
         margin-top: 0%;
     }
@@ -779,10 +862,23 @@
 
     .clock-board-header {
         z-index: 1;
+        padding-bottom: 1rem;
     }
 
     .clock-board-body {
         max-height: calc(100vh - 80px - 114px - 40px);
+    }
+
+    .clock-board.open-creator .clock-board-header {
+        height: 148px;
+    }
+
+    .clock-board.open-creator .clock-board-body {
+        max-height: calc(100vh - 80px - 148px - 40px);
+    }
+
+    .clock-board.open-creator.keyboard-open .clock-board-body {
+        max-height: calc(100vh - 80px - 148px);
     }
 
     /* Main footer */

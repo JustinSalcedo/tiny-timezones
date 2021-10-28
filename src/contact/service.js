@@ -1,8 +1,16 @@
 const store = require('./store')
+const { policy } = require('../config')
 
 const { validateTimezone } = require('../utils')
 
 async function createContact(userId, contactData) {
+    if (policy.user.contactsLimit) {
+        const contactsCount = await store.countWhere({ userId })
+        if (contactsCount === policy.user.contactsLimit) {
+            throw new Error('Limit of contacts per user reached')
+        }
+    }
+
     let { timezone, name } = contactData
     timezone = validateTimezone(timezone)
 
@@ -15,7 +23,19 @@ async function createContact(userId, contactData) {
 }
 
 async function createManyContacts(userId, contactsData) {
-    return store.createMany(userId, contactsData.map(contactData => {
+    let checkedContactsData = contactsData
+
+    if (policy.user.contactsLimit) {
+        const contactsCount = await store.countWhere({ userId })
+        if (contactsData.length + contactsCount > policy.user.contactsLimit) {
+            if (contactsCount === policy.user.contactsLimit) {
+                throw new Error('Limit of contacts per user reached')
+            }
+            checkedContactsData = contactsData.slice(0, (policy.user.contactsLimit - contactsCount))
+        }
+    }
+
+    return store.createMany(userId, checkedContactsData.map(contactData => {
         let { timezone, name } = contactData
         timezone = validateTimezone(timezone)
     

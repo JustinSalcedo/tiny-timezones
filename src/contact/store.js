@@ -36,10 +36,17 @@ async function updateWhere(partialDTO, condition) {
     })
 }
 
+async function countWhere(condition) {
+    return ContactModel.count({
+        where: condition
+    })
+}
+
 module.exports = {
     create,
     createMany,
     findWhere,
     deleteWhere,
-    updateWhere
+    updateWhere,
+    countWhere
 }

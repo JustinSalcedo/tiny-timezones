@@ -124,10 +124,17 @@ async function updateWhere(partialDTO, condition) {
     return [ nRows ]
 }
 
+async function countWhere(condition) {
+    return EventModel.count({
+        where: condition
+    })
+}
+
 module.exports = {
     create,
     createMany,
     findWhere,
     deleteWhere,
-    updateWhere
+    updateWhere,
+    countWhere
 }

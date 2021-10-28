@@ -1,8 +1,16 @@
 const store = require('./store')
+const { policy } = require('../config')
 
 const { validateTimezone } = require('../utils')
 
 async function createEvent(userId, eventData) {
+    if (policy.user.eventsLimit) {
+        const eventsCount = await store.countWhere({ userId })
+        if (eventsCount === policy.user.eventsLimit) {
+            throw new Error('Limit of events per user reached')
+        }
+    }
+
     let { timezone, name, timestamp, reminder, contactIds } = eventData
     timezone = validateTimezone(timezone)
     reminder = !!reminder
@@ -20,6 +28,18 @@ async function createEvent(userId, eventData) {
 }
 
 async function createManyEvents(userId, eventsData) {
+    let checkedEventsData = eventsData
+
+    if (policy.user.eventsLimit) {
+        const eventsCount = await store.countWhere({ userId })
+        if (eventsData.length + eventsCount > policy.user.eventsLimit) {
+            if (eventsCount === policy.user.eventsLimit) {
+                throw new Error('Limit of events per user reached')
+            }
+            checkedEventsData = eventsData.slice(0, (policy.user.eventsLimit - eventsCount))
+        }
+    }
+
     const eventRecords = await store.createMany(userId, eventsData.map(eventData => {
         let { timezone, name, timestamp, reminder, contactIds } = eventData
         timezone = validateTimezone(timezone)

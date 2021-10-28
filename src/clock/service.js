@@ -1,8 +1,16 @@
 const store = require('./store')
+const { policy } = require('../config')
 
 const { validateTimezone } = require('../utils')
 
 async function createClock(userId, clockData) {
+    if (policy.user.clocksLimit) {
+        const clocksCount = await store.countWhere({ userId })
+        if (clocksCount === policy.user.clocksLimit) {
+            throw new Error('Limit of clocks per user reached')
+        }
+    }
+
     let { timezone, name } = clockData
     timezone = validateTimezone(timezone)
 
@@ -15,7 +23,19 @@ async function createClock(userId, clockData) {
 }
 
 async function createManyClocks(userId, clocksData) {
-    return store.createMany(userId, clocksData.map(clockData => {
+    let checkedClocksData = clocksData
+
+    if (policy.user.clocksLimit) {
+        const clocksCount = await store.countWhere({ userId })
+        if (clocksData.length + clocksCount > policy.user.clocksLimit) {
+            if (clocksCount === policy.user.clocksLimit) {
+                throw new Error('Limit of clocks per user reached')
+            }
+            checkedClocksData = clocksData.slice(0, (policy.user.clocksLimit - clocksCount))
+        }
+    }
+
+    return store.createMany(userId, checkedClocksData.map(clockData => {
         let { timezone, name } = clockData
         timezone = validateTimezone(timezone)
     

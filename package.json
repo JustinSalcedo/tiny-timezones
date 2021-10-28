@@ -2,7 +2,7 @@
   "name": "tiny-timezones",
   "version": "1.0.0",
   "description": "Handle time notion with teams around the world",
-  "engines" : {
+  "engines": {
     "node": "14.x"
   },
   "main": "src/app.js",
@@ -20,14 +20,12 @@
   "homepage": "https://github.com/JustinSalcedo/tiny-timezones#readme",
   "dependencies": {
     "connect-session-sequelize": "^7.1.2",
-    "cookie-session": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "express-session": "^1.17.2",
     "google-auth-library": "^7.10.0",
     "jsonwebtoken": "^8.5.1",
-    "keygrip": "^1.1.0",
     "moment": "^2.29.1",
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.4",

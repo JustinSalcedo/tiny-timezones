@@ -527,7 +527,7 @@ li:nth-child(1) .contact {
     text-decoration: none;
 }
 
-.common-footer a:nth-child(2n) {
+.common-footer .author-links a:nth-child(2n) {
     border-left: 1px solid var(--paper-white);
     border-right: 1px solid var(--paper-white);
 }

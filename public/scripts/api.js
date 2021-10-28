@@ -1,10 +1,15 @@
+let POLICY_CACHE = null
+
 class UserAPI {
     constructor() {
         this.baseUrl = window.location.origin + '/api' + '/user'
         this.controller = new AbortController()
     }
 
-    getUserInfo() {
+    async getUserInfo() {
+        const genericService = new TimeItemsAPI(localStorage)
+        POLICY_CACHE = await genericService.fetchPolicy()
+
         const userStringified = localStorage.getItem('user')
 
         // Coming from sign up process
@@ -28,7 +33,7 @@ class UserAPI {
             // TODO: Send preferences to server
 
             localStorage.setItem('user', JSON.stringify(userInfo))
-            this.setUserAssociatedData(user, isNew)
+            await this.setUserAssociatedData(user, isNew)
 
             if (isNew && userStringified) {
                 const { localTimezone, displaySeconds, darkTheme } = JSON.parse(userStringified).user
@@ -79,15 +84,15 @@ class UserAPI {
         this.removeUserAssociatedData()
     }
 
-    setUserAssociatedData(user, isNew) {
+    async setUserAssociatedData(user, isNew) {
         const clockService = new ClockAPI(sessionStorage)
         const contactService = new ContactAPI(sessionStorage)
         const eventService = new EventAPI(sessionStorage)
         
         if (isNew) {
-            clockService.PersistData('clocks')
-            contactService.PersistData('contacts')
-            eventService.PersistData('events')
+            await clockService.PersistData('clocks')
+            await contactService.PersistData('contacts')
+            await eventService.PersistData('events')
         } else {
             const { contacts, clocks, events } = user
     
@@ -132,9 +137,6 @@ class UserAPI {
     savePreferences(userPreferences, isAuth) {
         if (isAuth) {
             this.updatePreferences(userPreferences)
-                // .then(statusCode => {
-                //     if (statusCode === 200) console.log('Preferences saved')
-                // })
                 .then(statusCode => {})
         }
 
@@ -177,6 +179,7 @@ class TimeItemsAPI {
         const userInfo = JSON.parse(localStorage.getItem('user'))
         this.isAuth = !!userInfo && !userInfo.isGuest
         this.storage = storage || this.defineStorage()
+        this.definePolicy()
     }
 
     defineStorage() {
@@ -187,43 +190,138 @@ class TimeItemsAPI {
         return sessionStorage
     }
 
+    definePolicy() {
+        if (!POLICY_CACHE) {
+            this.fetchPolicy()
+                .then(policy => {
+                    POLICY_CACHE = policy
+                    this.policy = {
+                        user: {
+                            limitOfItems: 10
+                        },
+                        guest: {
+                            limitOfItems: 5
+                        }
+                    }
+                })
+                .catch(error => console.log(error))
+        } else {
+            this.policy = {
+                user: {
+                    limitOfItems: 10
+                },
+                guest: {
+                    limitOfItems: 5
+                }
+            }
+        }
+    }
+
+    async fetchPolicy() {
+        try {
+            const url = window.location.origin + '/api' + '/policy'
+            const { signal } = this.controller
+
+            const requestOptions = {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                signal
+            }
+
+            const response = await fetch(url, requestOptions)
+            const { policy } = await response.json()
+            return policy
+        } catch (error) {
+            console.log('Error fetching policy: %o', error)
+        }
+    }
+
+    verifyPolicy() {
+        if (!this.policy) {
+            throw new Error('Policy not found')
+        }
+    }
+
     SaveCache(key, items) {
-        this.storage.setItem(key, JSON.stringify(items))
+        try {
+            this.verifyPolicy()
+
+            let checkedItems = items
+            if (items.length > this.policy.user.limitOfItems) {
+                checkedItems = items.slice(0, this.policy.user.limitOfItems)
+            }
+
+            this.storage.setItem(key, JSON.stringify(checkedItems))
+
+        } catch (error) {
+            console.error('Error saving cache: %o', error)
+        }
     }
 
     DeleteCache(key) {
         this.storage.removeItem(key)
     }
 
-    PersistData(key) {
-        if (localStorage.getItem(key)) {
-            const itemsData = JSON.parse(localStorage.getItem(key))
-            this.AddMany(key, itemsData)
-                .then(() => localStorage.removeItem(key))
-                .catch(error => console.log(error))
+    async PersistData(key) {
+        try {
+            this.verifyPolicy()
+
+            const itemString = localStorage.getItem(key)
+            if (itemString) {
+                let itemsData = JSON.parse(itemString)
+
+                if (itemsData.length > this.policy.user.limitOfItems) {
+                    itemsData = itemsData.slice(0, this.policy.user.limitOfItems)
+                }
+
+                await this.AddMany(key, itemsData)
+                localStorage.removeItem(key)
+            }
+        } catch (error) {
+            console.error('Error persisting data: %o', error)
         }
     }
 
     async Add(key, itemData) {
-        let newItem = null
-        if (this.isAuth) {
-            newItem = await this.create(itemData)
-        } else {
-            newItem = {
-                ...itemData,
-                id: uuid.v4()
-            }
-        }
-    
-        if (this.storage.getItem(key)) {
-            const items = JSON.parse(this.storage.getItem(key))
-            const moreItems = [...items, newItem]
-            this.storage.setItem(key, JSON.stringify(moreItems))
-        } else {
-            this.storage.setItem(key, JSON.stringify([newItem]))
-        }
+        try {
+            this.verifyPolicy()
 
-        return newItem
+            let newItem = null
+            const items = await this.GetAll(key)
+            if (this.isAuth) {
+                if (items.length === this.policy.user.limitOfItems) {
+                    return { policyConstraint: "LIMIT_EXCEED" }
+                }
+
+                newItem = await this.create(itemData)
+    
+                if (newItem.error) throw new Error(`${newItem.error}`)
+            } else {
+                if (items.length === this.policy.guest.limitOfItems) {
+                    return { policyConstraint: "LIMIT_EXCEED" }
+                }
+
+                newItem = {
+                    ...itemData,
+                    id: uuid.v4()
+                }
+            }
+    
+            if (this.storage.getItem(key)) {
+                const items = JSON.parse(this.storage.getItem(key))
+                const moreItems = [...items, newItem]
+                this.storage.setItem(key, JSON.stringify(moreItems))
+            } else {
+                this.storage.setItem(key, JSON.stringify([newItem]))
+            }
+    
+            return newItem
+        } catch (error) {
+            console.error('Error adding %s: %o', key, error)
+        }
     }
 
     async create(itemData) {
@@ -231,22 +329,49 @@ class TimeItemsAPI {
     }
 
     async AddMany(key, itemsData) {
-        let newItems = []
-        if (this.isAuth) {
-            newItems = await this.createMany(itemsData)
-        } else {
-            newItems = itemsData.map(itemData => ({ ...itemData, id: uuid.v4() }))
-        }
+        try {
+            this.verifyPolicy()
 
-        if (this.storage.getItem(key)) {
-            const items = JSON.parse(this.storage.getItem(key))
-            const moreItems = [...items, ...newItems]
-            this.storage.setItem(key, JSON.stringify(moreItems))
-        } else {
-            this.storage.setItem(key, JSON.stringify(newItems))
-        }
+            let newItems = []
+            const items = await this.GetAll(key)
+            if (this.isAuth) {
+                if (items.length === this.policy.user.limitOfItems) {
+                    return { policyConstraint: "LIMIT_EXCEED" }
+                }
 
-        return newItems
+                if (items.length + itemsData.length > this.policy.user.limitOfItems) {
+                    newItems = await this.createMany(itemsData.slice(0, this.policy.user.limitOfItems - items.length))
+                } else {
+                    newItems = await this.createMany(itemsData)
+                }
+    
+                if (newItems.error) throw new Error(`${newItems.error}`)
+            } else {
+                if (items.length === this.policy.guest.limitOfItems) {
+                    return { policyConstraint: "LIMIT_EXCEED" }
+                }
+
+                if (items.length + itemsData.length > this.policy.guest.limitOfItems) {
+                    newItems = itemsData
+                        .slice(0, this.policy.guest.limitOfItems - items.length)
+                        .map(itemData => ({ ...itemData, id: uuid.v4() }))
+                } else {
+                    newItems = itemsData.map(itemData => ({ ...itemData, id: uuid.v4() }))
+                }
+            }
+
+            if (this.storage.getItem(key)) {
+                const items = JSON.parse(this.storage.getItem(key))
+                const moreItems = [...items, ...newItems]
+                this.storage.setItem(key, JSON.stringify(moreItems))
+            } else {
+                this.storage.setItem(key, JSON.stringify(newItems))
+            }
+    
+            return newItems
+        } catch (error) {
+            console.error('Error adding many %s: %o', key, error)
+        }
     }
 
     async createMany(itemsData) {
@@ -263,6 +388,9 @@ class TimeItemsAPI {
                 items = JSON.parse(this.storage.getItem(key))
             } else if (this.isAuth) {
                 const fetchedItems = await this.fetchAll()
+
+                if (fetchedItems.error) throw new Error(`${fetchedItems.error}`)
+
                 items = fetchedItems || []
 
                 this.storage.setItem(key, JSON.stringify(items))
@@ -359,6 +487,33 @@ class ClockAPI extends TimeItemsAPI {
     constructor(storage) {
         super(storage)
         this.baseUrl = window.location.origin + '/api' + '/clock'
+    }
+
+    definePolicy() {
+        if (!POLICY_CACHE) {
+            this.fetchPolicy()
+                .then(policy => {
+                    POLICY_CACHE = policy
+                    this.policy = {
+                        user: {
+                            limitOfItems: policy.user.clocksLimit
+                        },
+                        guest: {
+                            limitOfItems: policy.guest.clocksLimit
+                        }
+                    }
+                })
+                .catch(error => console.log(error))
+        } else {
+            this.policy = {
+                user: {
+                    limitOfItems: POLICY_CACHE.user.clocksLimit
+                },
+                guest: {
+                    limitOfItems: POLICY_CACHE.guest.clocksLimit
+                }
+            }
+        }
     }
 
     async create(itemData) {
@@ -501,6 +656,33 @@ class ContactAPI extends TimeItemsAPI {
         this.baseUrl = window.location.origin + '/api' + '/contact'
     }
 
+    definePolicy() {
+        if (!POLICY_CACHE) {
+            this.fetchPolicy()
+                .then(policy => {
+                    POLICY_CACHE = policy
+                    this.policy = {
+                        user: {
+                            limitOfItems: policy.user.contactsLimit
+                        },
+                        guest: {
+                            limitOfItems: policy.guest.contactsLimit
+                        }
+                    }
+                })
+                .catch(error => console.log(error))
+        } else {
+            this.policy = {
+                user: {
+                    limitOfItems: POLICY_CACHE.user.contactsLimit
+                },
+                guest: {
+                    limitOfItems: POLICY_CACHE.guest.contactsLimit
+                }
+            }
+        }
+    }
+
     async create(itemData) {
         try {
             const { name, timezone } = itemData
@@ -639,6 +821,33 @@ class EventAPI extends TimeItemsAPI {
     constructor(storage) {
         super(storage)
         this.baseUrl = window.location.origin + '/api' + '/event'
+    }
+
+    definePolicy() {
+        if (!POLICY_CACHE) {
+            this.fetchPolicy()
+                .then(policy => {
+                    POLICY_CACHE = policy
+                    this.policy = {
+                        user: {
+                            limitOfItems: policy.user.eventsLimit
+                        },
+                        guest: {
+                            limitOfItems: policy.guest.eventsLimit
+                        }
+                    }
+                })
+                .catch(error => console.log(error))
+        } else {
+            this.policy = {
+                user: {
+                    limitOfItems: POLICY_CACHE.user.eventsLimit
+                },
+                guest: {
+                    limitOfItems: POLICY_CACHE.guest.eventsLimit
+                }
+            }
+        }
     }
 
     async create(itemData) {

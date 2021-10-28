@@ -46,6 +46,26 @@ function autoDetectTimezone() {
     return detectedTimezones[randomTz];
 }
 
+function determineOrientation() {
+    var orientation = (screen.orientation || {}).type || screen.mozOrientation || screen.msOrientation;
+
+    if (orientation === "landscape-primary" || orientation === "landscape-secondary") {
+        return "landscape";
+    } else if (orientation === "portrait-primary" || orientation === "portrait-secondary") {
+        return "portrait";
+    } else if (orientation === undefined) {
+        var altOrientation = window.orientation;
+
+        if (altOrientation === 0 || altOrientation === 180) {
+            return "portrait";
+        } else if (Math.abs(altOrientation) === 90) {
+            return "landscape";
+        }
+    }
+
+    return "portrait";
+}
+
 var AuthContext = createContext();
 
 var UserDataContext = createContext();
@@ -58,18 +78,35 @@ var App = function (_Component) {
 
         var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this, props));
 
+        _this.state = {
+            user: { unset: true },
+            isGuest: true
+        };
+
         _this.userService = new UserAPI();
         return _this;
     }
 
     _createClass(App, [{
+        key: 'componentDidMount',
+        value: function componentDidMount() {
+            var _this2 = this;
+
+            this.userService.getUserInfo().then(function (_ref) {
+                var user = _ref.user,
+                    isGuest = _ref.isGuest;
+                return _this2.setState({ user: user, isGuest: isGuest });
+            });
+        }
+    }, {
         key: 'render',
         value: function render() {
-            var _userService$getUserI = this.userService.getUserInfo(),
-                user = _userService$getUserI.user,
-                isGuest = _userService$getUserI.isGuest;
+            var _state = this.state,
+                user = _state.user,
+                isGuest = _state.isGuest;
 
-            return React.createElement(
+
+            return !user.unset && React.createElement(
                 'div',
                 { className: 'app-container' },
                 React.createElement(
@@ -90,15 +127,14 @@ var GlobalConfig = function (_Component2) {
     function GlobalConfig(props) {
         _classCallCheck(this, GlobalConfig);
 
-        var _this2 = _possibleConstructorReturn(this, (GlobalConfig.__proto__ || Object.getPrototypeOf(GlobalConfig)).call(this, props));
+        var _this3 = _possibleConstructorReturn(this, (GlobalConfig.__proto__ || Object.getPrototypeOf(GlobalConfig)).call(this, props));
 
-        _this2.contactService = new ContactAPI();
-        _this2.contactKey = 'contacts';
+        _this3.contactService = new ContactAPI();
+        _this3.contactKey = 'contacts';
 
-        _this2.eventService = new EventAPI();
-        _this2.eventKey = 'events';
-
-        _this2.state = {
+        _this3.eventService = new EventAPI();
+        _this3.eventKey = 'events';
+        _this3.state = {
             localTimezone: autoDetectTimezone(),
             displaySeconds: false,
             darkTheme: window.matchMedia("(prefers-color-scheme: dark)").matches,
@@ -109,45 +145,50 @@ var GlobalConfig = function (_Component2) {
             contactsBtn: false,
             eventsBtn: false,
             displayConfig: false,
-            displaySessionMenu: false
+            displaySessionMenu: false,
+            initialOrientation: determineOrientation(),
+            initialWidth: window.innerWidth,
+            initialHeight: window.innerHeight,
+            displayFooter: true
         };
 
-        _this2.componentIsMounted = createRef(true);
+        _this3.componentIsMounted = createRef(true);
 
-        _this2.changePreferences = _this2.changePreferences.bind(_this2);
-        _this2.toggleTheme = _this2.toggleTheme.bind(_this2);
-        _this2.createContact = _this2.createContact.bind(_this2);
-        _this2.findContactById = _this2.findContactById.bind(_this2);
-        _this2.editContactById = _this2.editContactById.bind(_this2);
-        _this2.deleteContactById = _this2.deleteContactById.bind(_this2);
-        _this2.createEvent = _this2.createEvent.bind(_this2);
-        _this2.findEventById = _this2.findEventById.bind(_this2);
-        _this2.editEventById = _this2.editEventById.bind(_this2);
-        _this2.deleteEventById = _this2.deleteEventById.bind(_this2);
-        _this2.toggleContactsPanel = _this2.toggleContactsPanel.bind(_this2);
-        _this2.toggleEventsPanel = _this2.toggleEventsPanel.bind(_this2);
-        _this2.onContactsTabHover = _this2.onContactsTabHover.bind(_this2);
-        _this2.onEventsTabHover = _this2.onEventsTabHover.bind(_this2);
-        _this2.onBlackoutClicked = _this2.onBlackoutClicked.bind(_this2), _this2.toggleDisplayConfig = _this2.toggleDisplayConfig.bind(_this2), _this2.toggleDisplaySessionMenu = _this2.toggleDisplaySessionMenu.bind(_this2);
-        _this2.closeAllDialogs = _this2.closeAllDialogs.bind(_this2);
-        return _this2;
+        _this3.changePreferences = _this3.changePreferences.bind(_this3);
+        _this3.toggleTheme = _this3.toggleTheme.bind(_this3);
+        _this3.createContact = _this3.createContact.bind(_this3);
+        _this3.findContactById = _this3.findContactById.bind(_this3);
+        _this3.editContactById = _this3.editContactById.bind(_this3);
+        _this3.deleteContactById = _this3.deleteContactById.bind(_this3);
+        _this3.createEvent = _this3.createEvent.bind(_this3);
+        _this3.findEventById = _this3.findEventById.bind(_this3);
+        _this3.editEventById = _this3.editEventById.bind(_this3);
+        _this3.deleteEventById = _this3.deleteEventById.bind(_this3);
+        _this3.toggleContactsPanel = _this3.toggleContactsPanel.bind(_this3);
+        _this3.toggleEventsPanel = _this3.toggleEventsPanel.bind(_this3);
+        _this3.onContactsTabHover = _this3.onContactsTabHover.bind(_this3);
+        _this3.onEventsTabHover = _this3.onEventsTabHover.bind(_this3);
+        _this3.onBlackoutClicked = _this3.onBlackoutClicked.bind(_this3), _this3.toggleDisplayConfig = _this3.toggleDisplayConfig.bind(_this3), _this3.toggleDisplaySessionMenu = _this3.toggleDisplaySessionMenu.bind(_this3);
+        _this3.closeAllDialogs = _this3.closeAllDialogs.bind(_this3);
+        _this3.handleVirtualKbd = _this3.handleVirtualKbd.bind(_this3);
+        return _this3;
     }
 
     _createClass(GlobalConfig, [{
         key: 'componentDidMount',
         value: function componentDidMount() {
-            var _this3 = this;
+            var _this4 = this;
 
             this.componentIsMounted.current = true;
 
             this.contactService.GetAll(this.contactKey).then(function (contacts) {
-                return _this3.setState({ contacts: contacts });
+                return _this4.setState({ contacts: contacts });
             }).catch(function (error) {
                 return console.log(error);
             });
 
             this.eventService.GetAll(this.eventKey).then(function (events) {
-                return _this3.setState({ events: events });
+                return _this4.setState({ events: events });
             }).catch(function (error) {
                 return console.log(error);
             });
@@ -159,6 +200,8 @@ var GlobalConfig = function (_Component2) {
 
             document.body.className = darkTheme ? "dark-theme" : "";
             this.setState({ localTimezone: localTimezone, displaySeconds: displaySeconds, darkTheme: darkTheme });
+
+            window.addEventListener('resize', this.handleVirtualKbd);
         }
     }, {
         key: 'componentWillUnmount',
@@ -166,6 +209,33 @@ var GlobalConfig = function (_Component2) {
             this.componentIsMounted.current = false;
             this.contactService.AbortAllRequests();
             this.eventService.AbortAllRequests();
+
+            window.removeEventListener('resize', this.handleVirtualKbd);
+        }
+    }, {
+        key: 'handleVirtualKbd',
+        value: function handleVirtualKbd() {
+            this.setState(function (_ref2) {
+                var initialOrientation = _ref2.initialOrientation,
+                    initialWidth = _ref2.initialWidth,
+                    initialHeight = _ref2.initialHeight;
+
+                if (initialOrientation !== determineOrientation() || initialHeight === window.innerWidth && initialWidth === window.innerHeight) {
+                    return {
+                        initialOrientation: determineOrientation(),
+                        initialWidth: window.innerWidth,
+                        initialHeight: window.innerHeight
+                    };
+                } else if (window.innerHeight < initialHeight) {
+                    console.log('Keyboard detected');
+                    document.querySelector('.app-container').className = "app-container keyboard-open";
+                    return { displayFooter: false };
+                } else if (window.innerHeight === initialHeight) {
+                    console.log('Keyboard off');
+                    document.querySelector('.app-container').className = "app-container";
+                    return { displayFooter: true };
+                }
+            });
         }
     }, {
         key: 'changePreferences',
@@ -184,17 +254,17 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'toggleTheme',
         value: function toggleTheme(e) {
-            var _this4 = this;
+            var _this5 = this;
 
             e.preventDefault();
 
-            this.setState(function (_ref) {
-                var darkTheme = _ref.darkTheme;
+            this.setState(function (_ref3) {
+                var darkTheme = _ref3.darkTheme;
 
                 document.body.className = !darkTheme ? "dark-theme" : "";
-                _this4.context.userService.savePreferences({
+                _this5.context.userService.savePreferences({
                     darkTheme: !darkTheme
-                }, !_this4.context.isGuest);
+                }, !_this5.context.isGuest);
                 return {
                     darkTheme: !darkTheme
                 };
@@ -203,12 +273,16 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'createContact',
         value: function createContact(newContactData) {
-            var _this5 = this;
+            var _this6 = this;
 
             this.contactService.Add(this.contactKey, newContactData).then(function (newContact) {
-                if (_this5.componentIsMounted.current) {
-                    _this5.setState(function (_ref2) {
-                        var contacts = _ref2.contacts;
+                if (newContact.policyConstraint) {
+                    return false;
+                }
+
+                if (_this6.componentIsMounted.current) {
+                    _this6.setState(function (_ref4) {
+                        var contacts = _ref4.contacts;
                         return {
                             contacts: [].concat(_toConsumableArray(contacts), [newContact])
                         };
@@ -230,12 +304,12 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'editContactById',
         value: function editContactById(id, partialContactData) {
-            var _this6 = this;
+            var _this7 = this;
 
             this.contactService.Modify(this.contactKey, id, partialContactData).then(function (wasModified) {
-                if (wasModified && _this6.componentIsMounted.current) {
-                    _this6.setState(function (_ref3) {
-                        var contacts = _ref3.contacts;
+                if (wasModified && _this7.componentIsMounted.current) {
+                    _this7.setState(function (_ref5) {
+                        var contacts = _ref5.contacts;
                         return {
                             contacts: contacts.map(function (contact) {
                                 if (contact.id === id) {
@@ -253,12 +327,12 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'deleteContactById',
         value: function deleteContactById(contactId) {
-            var _this7 = this;
+            var _this8 = this;
 
             this.contactService.Remove(this.contactKey, contactId).then(function (wasRemoved) {
-                if (wasRemoved && _this7.componentIsMounted.current) {
-                    _this7.setState(function (_ref4) {
-                        var contacts = _ref4.contacts;
+                if (wasRemoved && _this8.componentIsMounted.current) {
+                    _this8.setState(function (_ref6) {
+                        var contacts = _ref6.contacts;
                         return {
                             contacts: contacts.filter(function (contact) {
                                 return contact.id !== contactId;
@@ -273,12 +347,16 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'createEvent',
         value: function createEvent(newEventData) {
-            var _this8 = this;
+            var _this9 = this;
 
             this.eventService.Add(this.eventKey, newEventData).then(function (newEvent) {
-                if (_this8.componentIsMounted.current) {
-                    _this8.setState(function (_ref5) {
-                        var events = _ref5.events;
+                if (newEvent.policyConstraint) {
+                    return false;
+                }
+
+                if (_this9.componentIsMounted.current) {
+                    _this9.setState(function (_ref7) {
+                        var events = _ref7.events;
                         return {
                             events: [].concat(_toConsumableArray(events), [newEvent])
                         };
@@ -300,12 +378,12 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'editEventById',
         value: function editEventById(id, partialEventData) {
-            var _this9 = this;
+            var _this10 = this;
 
             this.eventService.Modify(this.eventKey, id, partialEventData).then(function (wasModified) {
-                if (wasModified && _this9.componentIsMounted.current) {
-                    _this9.setState(function (_ref6) {
-                        var events = _ref6.events;
+                if (wasModified && _this10.componentIsMounted.current) {
+                    _this10.setState(function (_ref8) {
+                        var events = _ref8.events;
                         return {
                             events: events.map(function (event) {
                                 if (event.id === id) {
@@ -323,12 +401,12 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'deleteEventById',
         value: function deleteEventById(eventId) {
-            var _this10 = this;
+            var _this11 = this;
 
             this.eventService.Remove(this.eventKey, eventId).then(function (wasRemoved) {
-                if (wasRemoved && _this10.componentIsMounted.current) {
-                    _this10.setState(function (_ref7) {
-                        var events = _ref7.events;
+                if (wasRemoved && _this11.componentIsMounted.current) {
+                    _this11.setState(function (_ref9) {
+                        var events = _ref9.events;
                         return {
                             events: events.filter(function (event) {
                                 return event.id !== eventId;
@@ -343,8 +421,8 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'toggleContactsPanel',
         value: function toggleContactsPanel() {
-            this.setState(function (_ref8) {
-                var expandContacts = _ref8.expandContacts;
+            this.setState(function (_ref10) {
+                var expandContacts = _ref10.expandContacts;
                 return {
                     expandContacts: !expandContacts,
                     expandEvents: expandContacts && false
@@ -354,8 +432,8 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'toggleEventsPanel',
         value: function toggleEventsPanel() {
-            this.setState(function (_ref9) {
-                var expandEvents = _ref9.expandEvents;
+            this.setState(function (_ref11) {
+                var expandEvents = _ref11.expandEvents;
                 return {
                     expandEvents: !expandEvents,
                     expandContacts: expandEvents && false
@@ -393,8 +471,8 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'toggleDisplayConfig',
         value: function toggleDisplayConfig() {
-            this.setState(function (_ref10) {
-                var displayConfig = _ref10.displayConfig;
+            this.setState(function (_ref12) {
+                var displayConfig = _ref12.displayConfig;
                 return {
                     displayConfig: !displayConfig
                 };
@@ -403,8 +481,8 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'toggleDisplaySessionMenu',
         value: function toggleDisplaySessionMenu() {
-            this.setState(function (_ref11) {
-                var displaySessionMenu = _ref11.displaySessionMenu;
+            this.setState(function (_ref13) {
+                var displaySessionMenu = _ref13.displaySessionMenu;
                 return {
                     displaySessionMenu: !displaySessionMenu
                 };
@@ -451,19 +529,20 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'render',
         value: function render() {
-            var _this11 = this;
+            var _this12 = this;
 
-            var _state = this.state,
-                localTimezone = _state.localTimezone,
-                displaySeconds = _state.displaySeconds,
-                contacts = _state.contacts,
-                events = _state.events,
-                expandContacts = _state.expandContacts,
-                expandEvents = _state.expandEvents,
-                contactsBtn = _state.contactsBtn,
-                eventsBtn = _state.eventsBtn,
-                displayConfig = _state.displayConfig,
-                displaySessionMenu = _state.displaySessionMenu;
+            var _state2 = this.state,
+                localTimezone = _state2.localTimezone,
+                displaySeconds = _state2.displaySeconds,
+                contacts = _state2.contacts,
+                events = _state2.events,
+                expandContacts = _state2.expandContacts,
+                expandEvents = _state2.expandEvents,
+                contactsBtn = _state2.contactsBtn,
+                eventsBtn = _state2.eventsBtn,
+                displayConfig = _state2.displayConfig,
+                displaySessionMenu = _state2.displaySessionMenu,
+                displayFooter = _state2.displayFooter;
 
             var userPreferences = {
                 localTimezone: localTimezone,
@@ -492,39 +571,39 @@ var GlobalConfig = function (_Component2) {
                         closeAllDialogs: this.closeAllDialogs
                     } },
                 React.createElement('div', { onClick: function onClick(e) {
-                        _this11.onBlackoutClicked();_this11.closeAllDialogs(e);
-                    }, className: expandContacts || expandEvents ? "blackout-on" : "blackout-off" }),
+                        _this12.onBlackoutClicked();_this12.closeAllDialogs(e);
+                    }, className: (expandContacts || expandEvents ? "blackout-on" : "blackout-off") + (displayFooter ? "" : " keyboard-open") }),
                 React.createElement(NavBar, { userPreferences: userPreferences }),
-                React.createElement(ClockBoard, { userPreferences: userPreferences }),
+                React.createElement(ClockBoard, { userPreferences: userPreferences, keyboardOpen: !displayFooter }),
                 React.createElement(
                     'div',
                     {
                         className: "collapse-tab" + (expandContacts ? " tab-open" : ""),
                         onMouseEnter: function onMouseEnter() {
-                            return _this11.onContactsTabHover(true);
+                            return _this12.onContactsTabHover(true);
                         },
                         onMouseLeave: function onMouseLeave() {
-                            return _this11.onContactsTabHover(false);
+                            return _this12.onContactsTabHover(false);
                         },
                         onClick: this.closeAllDialogs },
                     React.createElement('button', { className: "collapse-button collapse-btn-l" + (expandContacts ? " collapse-btn-active" : "") + (contactsBtn || expandContacts ? "" : " clps-btn-invisible"), onClick: this.toggleContactsPanel })
                 ),
-                React.createElement(ContactPanel, { localTimezone: localTimezone, expandContacts: expandContacts }),
-                React.createElement(EventPanel, { localTimezone: localTimezone, expandEvents: expandEvents }),
+                React.createElement(ContactPanel, { localTimezone: localTimezone, expandContacts: expandContacts, keyboardOpen: !displayFooter }),
+                React.createElement(EventPanel, { localTimezone: localTimezone, expandEvents: expandEvents, keyboardOpen: !displayFooter }),
                 React.createElement(
                     'div',
                     {
                         className: "collapse-tab-last" + (expandEvents ? " tab-open" : ""),
                         onMouseEnter: function onMouseEnter() {
-                            return _this11.onEventsTabHover(true);
+                            return _this12.onEventsTabHover(true);
                         },
                         onMouseLeave: function onMouseLeave() {
-                            return _this11.onEventsTabHover(false);
+                            return _this12.onEventsTabHover(false);
                         },
                         onClick: this.closeAllDialogs },
                     React.createElement('button', { className: "collapse-button collapse-btn-r" + (expandEvents ? " collapse-btn-active" : "") + (eventsBtn || expandEvents ? "" : " clps-btn-invisible"), onClick: this.toggleEventsPanel })
                 ),
-                React.createElement(Footer, {
+                displayFooter && React.createElement(Footer, {
                     expandContacts: expandContacts,
                     toggleContactsPanel: this.toggleContactsPanel,
                     expandEvents: expandEvents,
@@ -632,11 +711,11 @@ var UserSession = function (_Component4) {
     function UserSession(props) {
         _classCallCheck(this, UserSession);
 
-        var _this13 = _possibleConstructorReturn(this, (UserSession.__proto__ || Object.getPrototypeOf(UserSession)).call(this, props));
+        var _this14 = _possibleConstructorReturn(this, (UserSession.__proto__ || Object.getPrototypeOf(UserSession)).call(this, props));
 
-        _this13.closeSession = _this13.closeSession.bind(_this13);
-        _this13.signUp = _this13.signUp.bind(_this13);
-        return _this13;
+        _this14.closeSession = _this14.closeSession.bind(_this14);
+        _this14.signUp = _this14.signUp.bind(_this14);
+        return _this14;
     }
 
     _createClass(UserSession, [{
@@ -721,12 +800,12 @@ var TimeZoneSelector = function (_Component5) {
     function TimeZoneSelector(props) {
         _classCallCheck(this, TimeZoneSelector);
 
-        var _this14 = _possibleConstructorReturn(this, (TimeZoneSelector.__proto__ || Object.getPrototypeOf(TimeZoneSelector)).call(this, props));
+        var _this15 = _possibleConstructorReturn(this, (TimeZoneSelector.__proto__ || Object.getPrototypeOf(TimeZoneSelector)).call(this, props));
 
-        _this14.state = {
-            timezones: _this14.getTimeZones()
+        _this15.state = {
+            timezones: _this15.getTimeZones()
         };
-        return _this14;
+        return _this15;
     }
 
     _createClass(TimeZoneSelector, [{
@@ -773,15 +852,15 @@ var ClockBoard = function (_Component6) {
     function ClockBoard(props) {
         _classCallCheck(this, ClockBoard);
 
-        var _this15 = _possibleConstructorReturn(this, (ClockBoard.__proto__ || Object.getPrototypeOf(ClockBoard)).call(this, props));
+        var _this16 = _possibleConstructorReturn(this, (ClockBoard.__proto__ || Object.getPrototypeOf(ClockBoard)).call(this, props));
 
-        _this15.clockService = new ClockAPI();
-        _this15.clockKey = 'clocks';
+        _this16.clockService = new ClockAPI();
+        _this16.clockKey = 'clocks';
 
-        _this15.state = {
+        _this16.state = {
             clocks: [],
             newClockData: {
-                timezone: _this15.props.userPreferences.localTimezone,
+                timezone: _this16.props.userPreferences.localTimezone,
                 name: ''
             },
             editedClockData: {},
@@ -790,29 +869,29 @@ var ClockBoard = function (_Component6) {
             displayControls: false
         };
 
-        _this15.componentIsMounted = createRef(true);
+        _this16.componentIsMounted = createRef(true);
 
-        _this15.changeClockData = _this15.changeClockData.bind(_this15);
-        _this15.createClock = _this15.createClock.bind(_this15);
-        _this15.clearClockCreator = _this15.clearClockCreator.bind(_this15);
-        _this15.startClockEditor = _this15.startClockEditor.bind(_this15);
-        _this15.updateClockById = _this15.updateClockById.bind(_this15);
-        _this15.editClockById = _this15.editClockById.bind(_this15);
-        _this15.deleteClockById = _this15.deleteClockById.bind(_this15);
-        _this15.clearClockEditor = _this15.clearClockEditor.bind(_this15);
-        _this15.toggleDisplayCreator = _this15.toggleDisplayCreator.bind(_this15);
-        _this15.toggleDisplayControls = _this15.toggleDisplayControls.bind(_this15);
-        return _this15;
+        _this16.changeClockData = _this16.changeClockData.bind(_this16);
+        _this16.createClock = _this16.createClock.bind(_this16);
+        _this16.clearClockCreator = _this16.clearClockCreator.bind(_this16);
+        _this16.startClockEditor = _this16.startClockEditor.bind(_this16);
+        _this16.updateClockById = _this16.updateClockById.bind(_this16);
+        _this16.editClockById = _this16.editClockById.bind(_this16);
+        _this16.deleteClockById = _this16.deleteClockById.bind(_this16);
+        _this16.clearClockEditor = _this16.clearClockEditor.bind(_this16);
+        _this16.toggleDisplayCreator = _this16.toggleDisplayCreator.bind(_this16);
+        _this16.toggleDisplayControls = _this16.toggleDisplayControls.bind(_this16);
+        return _this16;
     }
 
     _createClass(ClockBoard, [{
         key: 'componentDidMount',
         value: function componentDidMount() {
-            var _this16 = this;
+            var _this17 = this;
 
             this.componentIsMounted.current = true;
             this.clockService.GetAll(this.clockKey).then(function (clocks) {
-                return _this16.setState({ clocks: clocks });
+                return _this17.setState({ clocks: clocks });
             }).catch(function (error) {
                 return console.log(error);
             });
@@ -834,15 +913,15 @@ var ClockBoard = function (_Component6) {
 
             if (name === "name" || name === "timezone") {
                 if (editing) {
-                    this.setState(function (_ref12) {
-                        var editedClockData = _ref12.editedClockData;
+                    this.setState(function (_ref14) {
+                        var editedClockData = _ref14.editedClockData;
                         return {
                             editedClockData: Object.assign({}, editedClockData, _defineProperty({}, name, value))
                         };
                     });
                 } else {
-                    this.setState(function (_ref13) {
-                        var newClockData = _ref13.newClockData;
+                    this.setState(function (_ref15) {
+                        var newClockData = _ref15.newClockData;
                         return {
                             newClockData: Object.assign({}, newClockData, _defineProperty({}, name, value))
                         };
@@ -853,7 +932,7 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'createClock',
         value: function createClock(e, callback) {
-            var _this17 = this;
+            var _this18 = this;
 
             e.preventDefault();
 
@@ -863,15 +942,22 @@ var ClockBoard = function (_Component6) {
 
             if (timezone && name) {
                 this.clockService.Add(this.clockKey, { timezone: timezone, name: name }).then(function (newClock) {
-                    if (_this17.componentIsMounted.current) {
-                        _this17.setState(function (_ref14) {
-                            var clocks = _ref14.clocks;
+                    if (newClock.policyConstraint) {
+                        if (callback) {
+                            callback();
+                        }
+                        return false;
+                    }
+
+                    if (_this18.componentIsMounted.current) {
+                        _this18.setState(function (_ref16) {
+                            var clocks = _ref16.clocks;
                             return {
                                 clocks: [].concat(_toConsumableArray(clocks), [newClock])
                             };
                         });
 
-                        _this17.clearClockCreator();
+                        _this18.clearClockCreator();
 
                         if (callback) {
                             callback();
@@ -885,8 +971,8 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'toggleDisplayCreator',
         value: function toggleDisplayCreator() {
-            this.setState(function (_ref15) {
-                var displayCreator = _ref15.displayCreator;
+            this.setState(function (_ref17) {
+                var displayCreator = _ref17.displayCreator;
                 return {
                     displayCreator: !displayCreator
                 };
@@ -895,8 +981,8 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'clearClockCreator',
         value: function clearClockCreator() {
-            this.setState(function (_ref16) {
-                var newClockData = _ref16.newClockData;
+            this.setState(function (_ref18) {
+                var newClockData = _ref18.newClockData;
                 return {
                     newClockData: Object.assign({}, newClockData, {
                         name: ''
@@ -907,8 +993,8 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'startClockEditor',
         value: function startClockEditor(clockId) {
-            this.setState(function (_ref17) {
-                var clocks = _ref17.clocks;
+            this.setState(function (_ref19) {
+                var clocks = _ref19.clocks;
 
                 var clock = clocks.find(function (clock) {
                     return clock.id === clockId;
@@ -923,12 +1009,12 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'updateClockById',
         value: function updateClockById(id, partialClockData) {
-            var _this18 = this;
+            var _this19 = this;
 
             this.clockService.Modify(this.clockKey, id, partialClockData).then(function (wasModified) {
-                if (wasModified && _this18.componentIsMounted.current) {
-                    _this18.setState(function (_ref18) {
-                        var clocks = _ref18.clocks;
+                if (wasModified && _this19.componentIsMounted.current) {
+                    _this19.setState(function (_ref20) {
+                        var clocks = _ref20.clocks;
                         return {
                             clocks: clocks.map(function (clock) {
                                 if (clock.id === id) {
@@ -949,9 +1035,9 @@ var ClockBoard = function (_Component6) {
         value: function editClockById(e, id) {
             e.preventDefault();
 
-            var _state2 = this.state,
-                editedClockData = _state2.editedClockData,
-                clocks = _state2.clocks;
+            var _state3 = this.state,
+                editedClockData = _state3.editedClockData,
+                clocks = _state3.clocks;
 
             var existingClock = clocks.find(function (clock) {
                 return clock.id === id;
@@ -966,13 +1052,13 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'deleteClockById',
         value: function deleteClockById(clockId) {
-            var _this19 = this;
+            var _this20 = this;
 
             this.clockService.Remove(this.clockKey, clockId).then(function (wasRemoved) {
-                if (wasRemoved && _this19.componentIsMounted.current) {
-                    _this19.setState(function (_ref19) {
-                        var clocks = _ref19.clocks,
-                            editedClockData = _ref19.editedClockData;
+                if (wasRemoved && _this20.componentIsMounted.current) {
+                    _this20.setState(function (_ref21) {
+                        var clocks = _ref21.clocks,
+                            editedClockData = _ref21.editedClockData;
 
                         var clocksLeft = clocks.filter(function (clock) {
                             return clock.id !== clockId;
@@ -1008,8 +1094,8 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'toggleDisplayControls',
         value: function toggleDisplayControls() {
-            this.setState(function (_ref20) {
-                var displayControls = _ref20.displayControls;
+            this.setState(function (_ref22) {
+                var displayControls = _ref22.displayControls;
                 return {
                     displayControls: !displayControls
                 };
@@ -1018,16 +1104,18 @@ var ClockBoard = function (_Component6) {
     }, {
         key: 'render',
         value: function render() {
-            var _this20 = this;
+            var _this21 = this;
 
-            var _state3 = this.state,
-                newClockData = _state3.newClockData,
-                clocks = _state3.clocks,
-                displayCreator = _state3.displayCreator,
-                editedClockData = _state3.editedClockData,
-                editing = _state3.editing,
-                displayControls = _state3.displayControls;
-            var userPreferences = this.props.userPreferences;
+            var _state4 = this.state,
+                newClockData = _state4.newClockData,
+                clocks = _state4.clocks,
+                displayCreator = _state4.displayCreator,
+                editedClockData = _state4.editedClockData,
+                editing = _state4.editing,
+                displayControls = _state4.displayControls;
+            var _props3 = this.props,
+                userPreferences = _props3.userPreferences,
+                keyboardOpen = _props3.keyboardOpen;
 
             var tickInterval = userPreferences.displaySeconds ? 1000 : 1000 * 5;
 
@@ -1036,7 +1124,7 @@ var ClockBoard = function (_Component6) {
 
             return React.createElement(
                 'div',
-                { className: 'clock-board', onClick: closeAllDialogs },
+                { className: "clock-board" + (displayCreator ? " open-creator" : "") + (keyboardOpen ? " keyboard-open" : ""), onClick: closeAllDialogs },
                 React.createElement(
                     'div',
                     { className: 'clock-board-header' },
@@ -1084,8 +1172,8 @@ var ClockBoard = function (_Component6) {
                                     tickInterval: tickInterval,
                                     displaySeconds: userPreferences.displaySeconds,
                                     displayControls: displayControls,
-                                    startClockEditor: _this20.startClockEditor,
-                                    deleteClockById: _this20.deleteClockById })
+                                    startClockEditor: _this21.startClockEditor,
+                                    deleteClockById: _this21.deleteClockById })
                             );
                         })
                     ),
@@ -1114,21 +1202,29 @@ var ClockCreator = function (_Component7) {
     function ClockCreator(props) {
         _classCallCheck(this, ClockCreator);
 
-        var _this21 = _possibleConstructorReturn(this, (ClockCreator.__proto__ || Object.getPrototypeOf(ClockCreator)).call(this, props));
+        var _this22 = _possibleConstructorReturn(this, (ClockCreator.__proto__ || Object.getPrototypeOf(ClockCreator)).call(this, props));
 
-        _this21.createClock = _this21.createClock.bind(_this21);
-        _this21.editClock = _this21.editClock.bind(_this21);
-        return _this21;
+        _this22.nameInput = createRef();
+
+        _this22.createClock = _this22.createClock.bind(_this22);
+        _this22.editClock = _this22.editClock.bind(_this22);
+        _this22.focusNameInput = _this22.focusNameInput.bind(_this22);
+        return _this22;
     }
 
     _createClass(ClockCreator, [{
+        key: 'componentDidMount',
+        value: function componentDidMount() {
+            this.focusNameInput();
+        }
+    }, {
         key: 'createClock',
         value: function createClock(e) {
             e.preventDefault();
 
-            var _props3 = this.props,
-                onSubmit = _props3.onSubmit,
-                onDismiss = _props3.onDismiss;
+            var _props4 = this.props,
+                onSubmit = _props4.onSubmit,
+                onDismiss = _props4.onDismiss;
 
             onSubmit(e, onDismiss);
         }
@@ -1137,21 +1233,26 @@ var ClockCreator = function (_Component7) {
         value: function editClock(e) {
             e.preventDefault();
 
-            var _props4 = this.props,
-                onSubmit = _props4.onSubmit,
-                clockData = _props4.clockData;
+            var _props5 = this.props,
+                onSubmit = _props5.onSubmit,
+                clockData = _props5.clockData;
 
             onSubmit(e, clockData.id);
         }
     }, {
+        key: 'focusNameInput',
+        value: function focusNameInput() {
+            this.nameInput.current.focus();
+        }
+    }, {
         key: 'render',
         value: function render() {
-            var _props5 = this.props,
-                clockData = _props5.clockData,
-                changeClockData = _props5.changeClockData,
-                onDismiss = _props5.onDismiss,
-                onClear = _props5.onClear,
-                edited = _props5.edited;
+            var _props6 = this.props,
+                clockData = _props6.clockData,
+                changeClockData = _props6.changeClockData,
+                onDismiss = _props6.onDismiss,
+                onClear = _props6.onClear,
+                edited = _props6.edited;
 
 
             return React.createElement(
@@ -1173,7 +1274,7 @@ var ClockCreator = function (_Component7) {
                             { htmlFor: 'name' },
                             'Choose a clock name'
                         ),
-                        React.createElement('input', { type: 'text', name: 'name', value: clockData.name, onChange: changeClockData })
+                        React.createElement('input', { type: 'text', name: 'name', value: clockData.name, onChange: changeClockData, ref: this.nameInput })
                     ),
                     React.createElement(
                         'div',
@@ -1241,40 +1342,40 @@ var MainClock = function (_Component8) {
     function MainClock(props) {
         _classCallCheck(this, MainClock);
 
-        var _this22 = _possibleConstructorReturn(this, (MainClock.__proto__ || Object.getPrototypeOf(MainClock)).call(this, props));
+        var _this23 = _possibleConstructorReturn(this, (MainClock.__proto__ || Object.getPrototypeOf(MainClock)).call(this, props));
 
-        _this22.editClock = _this22.editClock.bind(_this22);
-        _this22.deleteClock = _this22.deleteClock.bind(_this22);
-        return _this22;
+        _this23.editClock = _this23.editClock.bind(_this23);
+        _this23.deleteClock = _this23.deleteClock.bind(_this23);
+        return _this23;
     }
 
     _createClass(MainClock, [{
         key: 'editClock',
         value: function editClock() {
-            var _props6 = this.props,
-                startClockEditor = _props6.startClockEditor,
-                id = _props6.id;
+            var _props7 = this.props,
+                startClockEditor = _props7.startClockEditor,
+                id = _props7.id;
 
             startClockEditor(id);
         }
     }, {
         key: 'deleteClock',
         value: function deleteClock() {
-            var _props7 = this.props,
-                id = _props7.id,
-                deleteClockById = _props7.deleteClockById;
+            var _props8 = this.props,
+                id = _props8.id,
+                deleteClockById = _props8.deleteClockById;
 
             deleteClockById(id);
         }
     }, {
         key: 'render',
         value: function render() {
-            var _props8 = this.props,
-                name = _props8.name,
-                timezone = _props8.timezone,
-                displaySeconds = _props8.displaySeconds,
-                tickInterval = _props8.tickInterval,
-                displayControls = _props8.displayControls;
+            var _props9 = this.props,
+                name = _props9.name,
+                timezone = _props9.timezone,
+                displaySeconds = _props9.displaySeconds,
+                tickInterval = _props9.tickInterval,
+                displayControls = _props9.displayControls;
 
 
             return React.createElement(
@@ -1325,23 +1426,23 @@ var Clock = function (_Component9) {
     function Clock(props) {
         _classCallCheck(this, Clock);
 
-        var _this23 = _possibleConstructorReturn(this, (Clock.__proto__ || Object.getPrototypeOf(Clock)).call(this, props));
+        var _this24 = _possibleConstructorReturn(this, (Clock.__proto__ || Object.getPrototypeOf(Clock)).call(this, props));
 
-        var parsedTime = parseTimeToTimeZone(_this23.props.timezone);
+        var parsedTime = parseTimeToTimeZone(_this24.props.timezone);
 
-        _this23.state = {
+        _this24.state = {
             date: parsedTime
         };
-        return _this23;
+        return _this24;
     }
 
     _createClass(Clock, [{
         key: 'componentDidMount',
         value: function componentDidMount() {
-            var _this24 = this;
+            var _this25 = this;
 
             this.timer = setInterval(function () {
-                return _this24.tick();
+                return _this25.tick();
             }, this.props.tickInterval);
         }
     }, {
@@ -1390,12 +1491,12 @@ var ContactPanel = function (_Component10) {
     function ContactPanel(props) {
         _classCallCheck(this, ContactPanel);
 
-        var _this25 = _possibleConstructorReturn(this, (ContactPanel.__proto__ || Object.getPrototypeOf(ContactPanel)).call(this, props));
+        var _this26 = _possibleConstructorReturn(this, (ContactPanel.__proto__ || Object.getPrototypeOf(ContactPanel)).call(this, props));
 
-        _this25.state = {
+        _this26.state = {
             newContactData: {
                 name: '',
-                timezone: _this25.props.localTimezone
+                timezone: _this26.props.localTimezone
             },
             editedContactData: {},
             editing: false,
@@ -1403,16 +1504,16 @@ var ContactPanel = function (_Component10) {
             displayControls: false
         };
 
-        _this25.changeContactData = _this25.changeContactData.bind(_this25);
-        _this25.createContact = _this25.createContact.bind(_this25);
-        _this25.clearContactInput = _this25.clearContactInput.bind(_this25);
-        _this25.startContactEditor = _this25.startContactEditor.bind(_this25);
-        _this25.editContactById = _this25.editContactById.bind(_this25);
-        _this25.deleteContactById = _this25.deleteContactById.bind(_this25);
-        _this25.clearContactEditor = _this25.clearContactEditor.bind(_this25);
-        _this25.toggleDisplayInput = _this25.toggleDisplayInput.bind(_this25);
-        _this25.toggleDisplayControls = _this25.toggleDisplayControls.bind(_this25);
-        return _this25;
+        _this26.changeContactData = _this26.changeContactData.bind(_this26);
+        _this26.createContact = _this26.createContact.bind(_this26);
+        _this26.clearContactInput = _this26.clearContactInput.bind(_this26);
+        _this26.startContactEditor = _this26.startContactEditor.bind(_this26);
+        _this26.editContactById = _this26.editContactById.bind(_this26);
+        _this26.deleteContactById = _this26.deleteContactById.bind(_this26);
+        _this26.clearContactEditor = _this26.clearContactEditor.bind(_this26);
+        _this26.toggleDisplayInput = _this26.toggleDisplayInput.bind(_this26);
+        _this26.toggleDisplayControls = _this26.toggleDisplayControls.bind(_this26);
+        return _this26;
     }
 
     _createClass(ContactPanel, [{
@@ -1426,15 +1527,15 @@ var ContactPanel = function (_Component10) {
 
             if (name === "name" || name === "timezone") {
                 if (editing) {
-                    this.setState(function (_ref21) {
-                        var editedContactData = _ref21.editedContactData;
+                    this.setState(function (_ref23) {
+                        var editedContactData = _ref23.editedContactData;
                         return {
                             editedContactData: Object.assign({}, editedContactData, _defineProperty({}, name, value))
                         };
                     });
                 } else {
-                    this.setState(function (_ref22) {
-                        var newContactData = _ref22.newContactData;
+                    this.setState(function (_ref24) {
+                        var newContactData = _ref24.newContactData;
                         return {
                             newContactData: Object.assign({}, newContactData, _defineProperty({}, name, value))
                         };
@@ -1462,8 +1563,8 @@ var ContactPanel = function (_Component10) {
     }, {
         key: 'toggleDisplayInput',
         value: function toggleDisplayInput() {
-            this.setState(function (_ref23) {
-                var displayInput = _ref23.displayInput;
+            this.setState(function (_ref25) {
+                var displayInput = _ref25.displayInput;
                 return {
                     displayInput: !displayInput
                 };
@@ -1472,8 +1573,8 @@ var ContactPanel = function (_Component10) {
     }, {
         key: 'clearContactInput',
         value: function clearContactInput() {
-            this.setState(function (_ref24) {
-                var newContactData = _ref24.newContactData;
+            this.setState(function (_ref26) {
+                var newContactData = _ref26.newContactData;
                 return {
                     newContactData: Object.assign({}, newContactData, {
                         name: ''
@@ -1514,8 +1615,8 @@ var ContactPanel = function (_Component10) {
         value: function deleteContactById(contactId) {
             this.context.deleteContactById(contactId);
 
-            this.setState(function (_ref25) {
-                var editedContactData = _ref25.editedContactData;
+            this.setState(function (_ref27) {
+                var editedContactData = _ref27.editedContactData;
 
                 if (editedContactData.id && contactId === editedContactData.id) {
                     return {
@@ -1540,8 +1641,8 @@ var ContactPanel = function (_Component10) {
     }, {
         key: 'toggleDisplayControls',
         value: function toggleDisplayControls() {
-            this.setState(function (_ref26) {
-                var displayControls = _ref26.displayControls;
+            this.setState(function (_ref28) {
+                var displayControls = _ref28.displayControls;
                 return {
                     displayControls: !displayControls
                 };
@@ -1550,22 +1651,24 @@ var ContactPanel = function (_Component10) {
     }, {
         key: 'render',
         value: function render() {
-            var _this26 = this;
+            var _this27 = this;
 
             var contacts = this.context.contacts ? this.context.contacts : [];
-            var _state4 = this.state,
-                displayInput = _state4.displayInput,
-                newContactData = _state4.newContactData,
-                editedContactData = _state4.editedContactData,
-                editing = _state4.editing,
-                displayControls = _state4.displayControls;
-            var expandContacts = this.props.expandContacts;
+            var _state5 = this.state,
+                displayInput = _state5.displayInput,
+                newContactData = _state5.newContactData,
+                editedContactData = _state5.editedContactData,
+                editing = _state5.editing,
+                displayControls = _state5.displayControls;
+            var _props10 = this.props,
+                expandContacts = _props10.expandContacts,
+                keyboardOpen = _props10.keyboardOpen;
             var closeAllDialogs = this.context.closeAllDialogs;
 
 
             return React.createElement(
                 'div',
-                { onClick: closeAllDialogs, className: "contact-panel sidebar-left" + (expandContacts ? "-open" : "-closed") },
+                { onClick: closeAllDialogs, className: "contact-panel sidebar-left" + (expandContacts ? "-open" : "-closed") + (keyboardOpen ? " keyboard-open" : "") },
                 React.createElement(
                     'div',
                     { className: 'contact-panel-header' },
@@ -1613,8 +1716,8 @@ var ContactPanel = function (_Component10) {
                                     tickInterval: 1000 * 5,
                                     displaySeconds: false,
                                     displayControls: displayControls,
-                                    startContactEditor: _this26.startContactEditor,
-                                    deleteContactById: _this26.deleteContactById })
+                                    startContactEditor: _this27.startContactEditor,
+                                    deleteContactById: _this27.deleteContactById })
                             );
                         })
                     ),
@@ -1643,21 +1746,29 @@ var ContactInput = function (_Component11) {
     function ContactInput(props) {
         _classCallCheck(this, ContactInput);
 
-        var _this27 = _possibleConstructorReturn(this, (ContactInput.__proto__ || Object.getPrototypeOf(ContactInput)).call(this, props));
+        var _this28 = _possibleConstructorReturn(this, (ContactInput.__proto__ || Object.getPrototypeOf(ContactInput)).call(this, props));
 
-        _this27.createContact = _this27.createContact.bind(_this27);
-        _this27.editContact = _this27.editContact.bind(_this27);
-        return _this27;
+        _this28.nameInput = createRef();
+
+        _this28.createContact = _this28.createContact.bind(_this28);
+        _this28.editContact = _this28.editContact.bind(_this28);
+        _this28.focusNameInput = _this28.focusNameInput.bind(_this28);
+        return _this28;
     }
 
     _createClass(ContactInput, [{
+        key: 'componentDidMount',
+        value: function componentDidMount() {
+            this.focusNameInput();
+        }
+    }, {
         key: 'createContact',
         value: function createContact(e) {
             e.preventDefault();
 
-            var _props9 = this.props,
-                onSubmit = _props9.onSubmit,
-                onDismiss = _props9.onDismiss;
+            var _props11 = this.props,
+                onSubmit = _props11.onSubmit,
+                onDismiss = _props11.onDismiss;
 
             onSubmit(e, onDismiss);
         }
@@ -1666,21 +1777,26 @@ var ContactInput = function (_Component11) {
         value: function editContact(e) {
             e.preventDefault();
 
-            var _props10 = this.props,
-                onSubmit = _props10.onSubmit,
-                contactData = _props10.contactData;
+            var _props12 = this.props,
+                onSubmit = _props12.onSubmit,
+                contactData = _props12.contactData;
 
             onSubmit(e, contactData.id);
         }
     }, {
+        key: 'focusNameInput',
+        value: function focusNameInput() {
+            this.nameInput.current.focus();
+        }
+    }, {
         key: 'render',
         value: function render() {
-            var _props11 = this.props,
-                contactData = _props11.contactData,
-                changeContactData = _props11.changeContactData,
-                onDismiss = _props11.onDismiss,
-                onClear = _props11.onClear,
-                edited = _props11.edited;
+            var _props13 = this.props,
+                contactData = _props13.contactData,
+                changeContactData = _props13.changeContactData,
+                onDismiss = _props13.onDismiss,
+                onClear = _props13.onClear,
+                edited = _props13.edited;
 
 
             return React.createElement(
@@ -1697,7 +1813,7 @@ var ContactInput = function (_Component11) {
                             { htmlFor: 'name' },
                             'Contact name'
                         ),
-                        React.createElement('input', { type: 'text', name: 'name', value: contactData.name, onChange: changeContactData })
+                        React.createElement('input', { type: 'text', name: 'name', value: contactData.name, onChange: changeContactData, ref: this.nameInput })
                     ),
                     React.createElement(
                         'div',
@@ -1734,40 +1850,40 @@ var Contact = function (_Component12) {
     function Contact(props) {
         _classCallCheck(this, Contact);
 
-        var _this28 = _possibleConstructorReturn(this, (Contact.__proto__ || Object.getPrototypeOf(Contact)).call(this, props));
+        var _this29 = _possibleConstructorReturn(this, (Contact.__proto__ || Object.getPrototypeOf(Contact)).call(this, props));
 
-        _this28.editContact = _this28.editContact.bind(_this28);
-        _this28.deleteContact = _this28.deleteContact.bind(_this28);
-        return _this28;
+        _this29.editContact = _this29.editContact.bind(_this29);
+        _this29.deleteContact = _this29.deleteContact.bind(_this29);
+        return _this29;
     }
 
     _createClass(Contact, [{
         key: 'editContact',
         value: function editContact() {
-            var _props12 = this.props,
-                startContactEditor = _props12.startContactEditor,
-                id = _props12.id;
+            var _props14 = this.props,
+                startContactEditor = _props14.startContactEditor,
+                id = _props14.id;
 
             startContactEditor(id);
         }
     }, {
         key: 'deleteContact',
         value: function deleteContact() {
-            var _props13 = this.props,
-                id = _props13.id,
-                deleteContactById = _props13.deleteContactById;
+            var _props15 = this.props,
+                id = _props15.id,
+                deleteContactById = _props15.deleteContactById;
 
             deleteContactById(id);
         }
     }, {
         key: 'render',
         value: function render() {
-            var _props14 = this.props,
-                name = _props14.name,
-                timezone = _props14.timezone,
-                tickInterval = _props14.tickInterval,
-                displaySeconds = _props14.displaySeconds,
-                displayControls = _props14.displayControls;
+            var _props16 = this.props,
+                name = _props16.name,
+                timezone = _props16.timezone,
+                tickInterval = _props16.tickInterval,
+                displaySeconds = _props16.displaySeconds,
+                displayControls = _props16.displayControls;
 
 
             return React.createElement(
@@ -1833,17 +1949,17 @@ var EventPanel = function (_Component13) {
     function EventPanel(props) {
         _classCallCheck(this, EventPanel);
 
-        var _this29 = _possibleConstructorReturn(this, (EventPanel.__proto__ || Object.getPrototypeOf(EventPanel)).call(this, props));
+        var _this30 = _possibleConstructorReturn(this, (EventPanel.__proto__ || Object.getPrototypeOf(EventPanel)).call(this, props));
 
-        var parsedTime = parseTimeToTimeZone(_this29.props.localTimezone);
+        var parsedTime = parseTimeToTimeZone(_this30.props.localTimezone);
         var timePlusOneHour = new Date(parsedTime.getTime() + 1000 * 60 * 60);
 
-        _this29.state = {
+        _this30.state = {
             newEventData: {
                 name: '',
                 date: getFormattedDate(timePlusOneHour),
                 time: formatTimer(timePlusOneHour.getHours(), timePlusOneHour.getMinutes()),
-                timezone: _this29.props.localTimezone,
+                timezone: _this30.props.localTimezone,
                 reminder: false,
                 contactIds: []
             },
@@ -1853,28 +1969,28 @@ var EventPanel = function (_Component13) {
             displayControls: false
         };
 
-        _this29.changeEventData = _this29.changeEventData.bind(_this29);
-        _this29.createEvent = _this29.createEvent.bind(_this29);
-        _this29.clearEventInput = _this29.clearEventInput.bind(_this29);
-        _this29.toggleReminderById = _this29.toggleReminderById.bind(_this29);
-        _this29.startEventEditor = _this29.startEventEditor.bind(_this29);
-        _this29.editEventById = _this29.editEventById.bind(_this29);
-        _this29.deleteEventById = _this29.deleteEventById.bind(_this29);
-        _this29.clearEventEditor = _this29.clearEventEditor.bind(_this29);
-        _this29.displayReminder = _this29.displayReminder.bind(_this29);
-        _this29.toggleDisplayInput = _this29.toggleDisplayInput.bind(_this29);
-        _this29.toggleDisplayControls = _this29.toggleDisplayControls.bind(_this29);
-        return _this29;
+        _this30.changeEventData = _this30.changeEventData.bind(_this30);
+        _this30.createEvent = _this30.createEvent.bind(_this30);
+        _this30.clearEventInput = _this30.clearEventInput.bind(_this30);
+        _this30.toggleReminderById = _this30.toggleReminderById.bind(_this30);
+        _this30.startEventEditor = _this30.startEventEditor.bind(_this30);
+        _this30.editEventById = _this30.editEventById.bind(_this30);
+        _this30.deleteEventById = _this30.deleteEventById.bind(_this30);
+        _this30.clearEventEditor = _this30.clearEventEditor.bind(_this30);
+        _this30.displayReminder = _this30.displayReminder.bind(_this30);
+        _this30.toggleDisplayInput = _this30.toggleDisplayInput.bind(_this30);
+        _this30.toggleDisplayControls = _this30.toggleDisplayControls.bind(_this30);
+        return _this30;
     }
 
     _createClass(EventPanel, [{
         key: 'changeEventData',
         value: function changeEventData(e) {
             var name = e.target.name;
-            var _state5 = this.state,
-                newEventData = _state5.newEventData,
-                editedEventData = _state5.editedEventData,
-                editing = _state5.editing;
+            var _state6 = this.state,
+                newEventData = _state6.newEventData,
+                editedEventData = _state6.editedEventData,
+                editing = _state6.editing;
 
 
             var eventDataKeys = Object.keys(newEventData);
@@ -1886,8 +2002,8 @@ var EventPanel = function (_Component13) {
                 }
 
                 if (name === "contactIds") {
-                    var _ref27 = editing ? editedEventData : newEventData,
-                        contactIds = _ref27.contactIds;
+                    var _ref29 = editing ? editedEventData : newEventData,
+                        contactIds = _ref29.contactIds;
 
                     contactIds = contactIds || [];
                     var targetValue = !isNaN(e.target.value) ? parseInt(e.target.value) : e.target.value;
@@ -1897,15 +2013,15 @@ var EventPanel = function (_Component13) {
                 }
 
                 if (editing) {
-                    this.setState(function (_ref28) {
-                        var editedEventData = _ref28.editedEventData;
+                    this.setState(function (_ref30) {
+                        var editedEventData = _ref30.editedEventData;
                         return {
                             editedEventData: Object.assign({}, editedEventData, _defineProperty({}, name, value))
                         };
                     });
                 } else {
-                    this.setState(function (_ref29) {
-                        var newEventData = _ref29.newEventData;
+                    this.setState(function (_ref31) {
+                        var newEventData = _ref31.newEventData;
                         return {
                             newEventData: Object.assign({}, newEventData, _defineProperty({}, name, value))
                         };
@@ -1992,8 +2108,8 @@ var EventPanel = function (_Component13) {
     }, {
         key: 'toggleDisplayInput',
         value: function toggleDisplayInput() {
-            this.setState(function (_ref30) {
-                var displayInput = _ref30.displayInput;
+            this.setState(function (_ref32) {
+                var displayInput = _ref32.displayInput;
                 return {
                     displayInput: !displayInput
                 };
@@ -2002,8 +2118,8 @@ var EventPanel = function (_Component13) {
     }, {
         key: 'clearEventInput',
         value: function clearEventInput() {
-            this.setState(function (_ref31) {
-                var newEventData = _ref31.newEventData;
+            this.setState(function (_ref33) {
+                var newEventData = _ref33.newEventData;
                 return {
                     newEventData: Object.assign({}, newEventData, {
                         name: '',
@@ -2064,8 +2180,8 @@ var EventPanel = function (_Component13) {
         value: function deleteEventById(eventId) {
             this.context.deleteEventById(eventId);
 
-            this.setState(function (_ref32) {
-                var editedEventData = _ref32.editedEventData;
+            this.setState(function (_ref34) {
+                var editedEventData = _ref34.editedEventData;
 
                 if (editedEventData.id && eventId === editedEventData.id) {
                     return {
@@ -2090,8 +2206,8 @@ var EventPanel = function (_Component13) {
     }, {
         key: 'toggleDisplayControls',
         value: function toggleDisplayControls() {
-            this.setState(function (_ref33) {
-                var displayControls = _ref33.displayControls;
+            this.setState(function (_ref35) {
+                var displayControls = _ref35.displayControls;
                 return {
                     displayControls: !displayControls
                 };
@@ -2100,22 +2216,24 @@ var EventPanel = function (_Component13) {
     }, {
         key: 'render',
         value: function render() {
-            var _this30 = this;
+            var _this31 = this;
 
             var events = this.context.events ? this.context.events : [];
-            var _state6 = this.state,
-                displayInput = _state6.displayInput,
-                newEventData = _state6.newEventData,
-                editedEventData = _state6.editedEventData,
-                editing = _state6.editing,
-                displayControls = _state6.displayControls;
-            var expandEvents = this.props.expandEvents;
+            var _state7 = this.state,
+                displayInput = _state7.displayInput,
+                newEventData = _state7.newEventData,
+                editedEventData = _state7.editedEventData,
+                editing = _state7.editing,
+                displayControls = _state7.displayControls;
+            var _props17 = this.props,
+                expandEvents = _props17.expandEvents,
+                keyboardOpen = _props17.keyboardOpen;
             var closeAllDialogs = this.context.closeAllDialogs;
 
 
             return React.createElement(
                 'div',
-                { onClick: closeAllDialogs, className: "event-panel sidebar-right" + (expandEvents ? "-open" : "-closed") },
+                { onClick: closeAllDialogs, className: "event-panel sidebar-right" + (expandEvents ? "-open" : "-closed") + (keyboardOpen ? " keyboard-open" : "") },
                 React.createElement(
                     'div',
                     { className: 'event-panel-header' },
@@ -2168,11 +2286,11 @@ var EventPanel = function (_Component13) {
                                     timezone: event.timezone,
                                     contactIds: event.contactIds,
                                     reminder: event.reminder,
-                                    displayReminder: _this30.displayReminder,
-                                    toggleReminderById: _this30.toggleReminderById,
+                                    displayReminder: _this31.displayReminder,
+                                    toggleReminderById: _this31.toggleReminderById,
                                     displayControls: displayControls,
-                                    startEventEditor: _this30.startEventEditor,
-                                    deleteEventById: _this30.deleteEventById })
+                                    startEventEditor: _this31.startEventEditor,
+                                    deleteEventById: _this31.deleteEventById })
                             );
                         }),
                         React.createElement(
@@ -2211,10 +2329,10 @@ var ContactSelector = function (_Component14) {
     _createClass(ContactSelector, [{
         key: 'render',
         value: function render() {
-            var _props15 = this.props,
-                name = _props15.name,
-                onChange = _props15.onChange,
-                contactIds = _props15.contactIds;
+            var _props18 = this.props,
+                name = _props18.name,
+                onChange = _props18.onChange,
+                contactIds = _props18.contactIds;
 
             var contacts = this.context.contacts ? this.context.contacts : [];
 
@@ -2254,21 +2372,29 @@ var EventInput = function (_Component15) {
     function EventInput(props) {
         _classCallCheck(this, EventInput);
 
-        var _this32 = _possibleConstructorReturn(this, (EventInput.__proto__ || Object.getPrototypeOf(EventInput)).call(this, props));
+        var _this33 = _possibleConstructorReturn(this, (EventInput.__proto__ || Object.getPrototypeOf(EventInput)).call(this, props));
 
-        _this32.createEvent = _this32.createEvent.bind(_this32);
-        _this32.editEvent = _this32.editEvent.bind(_this32);
-        return _this32;
+        _this33.nameInput = createRef();
+
+        _this33.createEvent = _this33.createEvent.bind(_this33);
+        _this33.editEvent = _this33.editEvent.bind(_this33);
+        _this33.focusNameInput = _this33.focusNameInput.bind(_this33);
+        return _this33;
     }
 
     _createClass(EventInput, [{
+        key: 'componentDidMount',
+        value: function componentDidMount() {
+            this.focusNameInput();
+        }
+    }, {
         key: 'createEvent',
         value: function createEvent(e) {
             e.preventDefault();
 
-            var _props16 = this.props,
-                onSubmit = _props16.onSubmit,
-                onDismiss = _props16.onDismiss;
+            var _props19 = this.props,
+                onSubmit = _props19.onSubmit,
+                onDismiss = _props19.onDismiss;
 
             onSubmit(e, onDismiss);
         }
@@ -2277,21 +2403,26 @@ var EventInput = function (_Component15) {
         value: function editEvent(e) {
             e.preventDefault();
 
-            var _props17 = this.props,
-                onSubmit = _props17.onSubmit,
-                eventData = _props17.eventData;
+            var _props20 = this.props,
+                onSubmit = _props20.onSubmit,
+                eventData = _props20.eventData;
 
             onSubmit(e, eventData.id);
         }
     }, {
+        key: 'focusNameInput',
+        value: function focusNameInput() {
+            this.nameInput.current.focus();
+        }
+    }, {
         key: 'render',
         value: function render() {
-            var _props18 = this.props,
-                eventData = _props18.eventData,
-                changeEventData = _props18.changeEventData,
-                onDismiss = _props18.onDismiss,
-                onClear = _props18.onClear,
-                edited = _props18.edited;
+            var _props21 = this.props,
+                eventData = _props21.eventData,
+                changeEventData = _props21.changeEventData,
+                onDismiss = _props21.onDismiss,
+                onClear = _props21.onClear,
+                edited = _props21.edited;
 
 
             var parsedTime = parseTimeToTimeZone(eventData.timezone);
@@ -2314,7 +2445,7 @@ var EventInput = function (_Component15) {
                             { htmlFor: 'name' },
                             'Event name'
                         ),
-                        React.createElement('input', { type: 'text', name: 'name', value: eventData.name, onChange: changeEventData })
+                        React.createElement('input', { type: 'text', name: 'name', value: eventData.name, onChange: changeEventData, ref: this.nameInput })
                     ),
                     React.createElement(
                         'div',
@@ -2426,23 +2557,23 @@ var Event = function (_Component16) {
     function Event(props) {
         _classCallCheck(this, Event);
 
-        var _this33 = _possibleConstructorReturn(this, (Event.__proto__ || Object.getPrototypeOf(Event)).call(this, props));
+        var _this34 = _possibleConstructorReturn(this, (Event.__proto__ || Object.getPrototypeOf(Event)).call(this, props));
 
-        _this33.throwEvent = _this33.throwEvent.bind(_this33);
-        _this33.toggleReminder = _this33.toggleReminder.bind(_this33);
-        _this33.editEvent = _this33.editEvent.bind(_this33);
-        _this33.deleteEvent = _this33.deleteEvent.bind(_this33);
-        return _this33;
+        _this34.throwEvent = _this34.throwEvent.bind(_this34);
+        _this34.toggleReminder = _this34.toggleReminder.bind(_this34);
+        _this34.editEvent = _this34.editEvent.bind(_this34);
+        _this34.deleteEvent = _this34.deleteEvent.bind(_this34);
+        return _this34;
     }
 
     _createClass(Event, [{
         key: 'throwEvent',
         value: function throwEvent() {
-            var _props19 = this.props,
-                displayReminder = _props19.displayReminder,
-                id = _props19.id,
-                reminder = _props19.reminder,
-                deleteEventById = _props19.deleteEventById;
+            var _props22 = this.props,
+                displayReminder = _props22.displayReminder,
+                id = _props22.id,
+                reminder = _props22.reminder,
+                deleteEventById = _props22.deleteEventById;
 
 
             if (reminder) {
@@ -2453,41 +2584,41 @@ var Event = function (_Component16) {
     }, {
         key: 'toggleReminder',
         value: function toggleReminder() {
-            var _props20 = this.props,
-                toggleReminderById = _props20.toggleReminderById,
-                id = _props20.id,
-                reminder = _props20.reminder;
+            var _props23 = this.props,
+                toggleReminderById = _props23.toggleReminderById,
+                id = _props23.id,
+                reminder = _props23.reminder;
 
             toggleReminderById(id, reminder);
         }
     }, {
         key: 'editEvent',
         value: function editEvent() {
-            var _props21 = this.props,
-                startEventEditor = _props21.startEventEditor,
-                id = _props21.id;
+            var _props24 = this.props,
+                startEventEditor = _props24.startEventEditor,
+                id = _props24.id;
 
             startEventEditor(id);
         }
     }, {
         key: 'deleteEvent',
         value: function deleteEvent() {
-            var _props22 = this.props,
-                id = _props22.id,
-                deleteEventById = _props22.deleteEventById;
+            var _props25 = this.props,
+                id = _props25.id,
+                deleteEventById = _props25.deleteEventById;
 
             deleteEventById(id);
         }
     }, {
         key: 'render',
         value: function render() {
-            var _props23 = this.props,
-                name = _props23.name,
-                timestamp = _props23.timestamp,
-                timezone = _props23.timezone,
-                contactIds = _props23.contactIds,
-                reminder = _props23.reminder,
-                displayControls = _props23.displayControls;
+            var _props26 = this.props,
+                name = _props26.name,
+                timestamp = _props26.timestamp,
+                timezone = _props26.timezone,
+                contactIds = _props26.contactIds,
+                reminder = _props26.reminder,
+                displayControls = _props26.displayControls;
 
 
             return React.createElement(
@@ -2555,24 +2686,24 @@ var RegressiveClock = function (_Component17) {
     function RegressiveClock(props) {
         _classCallCheck(this, RegressiveClock);
 
-        var _this34 = _possibleConstructorReturn(this, (RegressiveClock.__proto__ || Object.getPrototypeOf(RegressiveClock)).call(this, props));
+        var _this35 = _possibleConstructorReturn(this, (RegressiveClock.__proto__ || Object.getPrototypeOf(RegressiveClock)).call(this, props));
 
-        var parsedTime = parseTimeToTimeZone(_this34.props.timezone);
-        var mlSecsLeft = getMlSecsLeftToNow(_this34.props.timestamp, parsedTime);
+        var parsedTime = parseTimeToTimeZone(_this35.props.timezone);
+        var mlSecsLeft = getMlSecsLeftToNow(_this35.props.timestamp, parsedTime);
 
-        _this34.state = {
+        _this35.state = {
             mlSecsLeft: mlSecsLeft
         };
-        return _this34;
+        return _this35;
     }
 
     _createClass(RegressiveClock, [{
         key: 'componentDidMount',
         value: function componentDidMount() {
-            var _this35 = this;
+            var _this36 = this;
 
             this.timer = setInterval(function () {
-                return _this35.tick();
+                return _this36.tick();
             }, this.props.tickInterval);
         }
     }, {
@@ -2695,12 +2826,12 @@ var Footer = function (_Component19) {
         key: 'render',
         value: function render() {
             var closeAllDialogs = this.context.closeAllDialogs;
-            var _props24 = this.props,
-                expandContacts = _props24.expandContacts,
-                toggleContactsPanel = _props24.toggleContactsPanel,
-                expandEvents = _props24.expandEvents,
-                toggleEventsPanel = _props24.toggleEventsPanel,
-                showClockBoard = _props24.showClockBoard;
+            var _props27 = this.props,
+                expandContacts = _props27.expandContacts,
+                toggleContactsPanel = _props27.toggleContactsPanel,
+                expandEvents = _props27.expandEvents,
+                toggleEventsPanel = _props27.toggleEventsPanel,
+                showClockBoard = _props27.showClockBoard;
 
 
             return React.createElement(

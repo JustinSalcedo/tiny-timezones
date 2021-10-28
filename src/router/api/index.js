@@ -5,6 +5,7 @@ const auth = require('./auth')
 const clock = require('./clock')
 const contact = require('./contact')
 const event = require('./event')
+const policy = require('./policy')
 const user = require('./user')
 
 function api(app) {
@@ -14,6 +15,7 @@ function api(app) {
     clock(route)
     contact(route)
     event(route)
+    policy(route)
     user(route)
 }
 

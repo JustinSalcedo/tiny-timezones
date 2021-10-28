@@ -27,6 +27,26 @@ function autoDetectTimezone() {
     return detectedTimezones[randomTz]
 }
 
+function determineOrientation() {
+    const orientation = (screen.orientation || {}).type || screen.mozOrientation || screen.msOrientation
+
+    if (orientation === "landscape-primary" || orientation === "landscape-secondary") {
+        return "landscape"
+    } else if (orientation === "portrait-primary" || orientation === "portrait-secondary") {
+        return "portrait"
+    } else if (orientation === undefined) {
+        const altOrientation = window.orientation
+
+        if (altOrientation === 0 || altOrientation === 180) {
+            return "portrait"
+        } else if (Math.abs(altOrientation) === 90) {
+            return "landscape"
+        }
+    }
+
+    return "portrait"
+}
+
 const AuthContext = createContext()
 
 const UserDataContext = createContext()
@@ -34,19 +54,31 @@ const UserDataContext = createContext()
 class App extends Component {
     constructor(props) {
         super(props)
+
+        this.state = {
+            user: { unset: true },
+            isGuest: true
+        }
     
         this.userService = new UserAPI()
     }
 
+    componentDidMount() {
+        this.userService.getUserInfo()
+            .then(({ user, isGuest }) => this.setState({ user, isGuest }))
+    }
+
     render() {
-        const { user, isGuest } = this.userService.getUserInfo()
+        const { user, isGuest } = this.state
 
         return (
-            <div className="app-container">
-                <AuthContext.Provider value={{ user, isGuest, userService: this.userService }}>
-                    <GlobalConfig />
-                </AuthContext.Provider>
-            </div>
+            !user.unset && (
+                <div className="app-container">
+                    <AuthContext.Provider value={{ user, isGuest, userService: this.userService }}>
+                        <GlobalConfig />
+                    </AuthContext.Provider>
+                </div>
+            )
         )
     }
 }
@@ -62,7 +94,6 @@ class GlobalConfig extends Component {
 
         this.eventService = new EventAPI()
         this.eventKey = 'events'
-    
         this.state = {
             localTimezone: autoDetectTimezone(),
             displaySeconds: false,
@@ -74,7 +105,11 @@ class GlobalConfig extends Component {
             contactsBtn: false,
             eventsBtn: false,
             displayConfig: false,
-            displaySessionMenu: false
+            displaySessionMenu: false,
+            initialOrientation: determineOrientation(),
+            initialWidth: window.innerWidth,
+            initialHeight: window.innerHeight,
+            displayFooter: true
         }
 
         this.componentIsMounted = createRef(true)
@@ -97,6 +132,7 @@ class GlobalConfig extends Component {
         this.toggleDisplayConfig = this.toggleDisplayConfig.bind(this),
         this.toggleDisplaySessionMenu = this.toggleDisplaySessionMenu.bind(this)
         this.closeAllDialogs = this.closeAllDialogs.bind(this)
+        this.handleVirtualKbd = this.handleVirtualKbd.bind(this)
     }
 
     componentDidMount() {
@@ -113,12 +149,36 @@ class GlobalConfig extends Component {
         const { localTimezone, displaySeconds, darkTheme } = this.context.user
         document.body.className = darkTheme ? "dark-theme" : ""
         this.setState({ localTimezone, displaySeconds, darkTheme })
+
+        window.addEventListener('resize', this.handleVirtualKbd)
     }
 
     componentWillUnmount() {
         this.componentIsMounted.current = false
         this.contactService.AbortAllRequests()
         this.eventService.AbortAllRequests()
+        
+        window.removeEventListener('resize', this.handleVirtualKbd)
+    }
+
+    handleVirtualKbd() {
+        this.setState(({ initialOrientation, initialWidth, initialHeight }) => {
+            if (initialOrientation !== determineOrientation() || (initialHeight === window.innerWidth && initialWidth === window.innerHeight)) {
+                return {
+                    initialOrientation: determineOrientation(),
+                    initialWidth: window.innerWidth,
+                    initialHeight: window.innerHeight
+                }
+            } else if (window.innerHeight < initialHeight) {
+                console.log('Keyboard detected')
+                document.querySelector('.app-container').className = "app-container keyboard-open"
+                return { displayFooter: false }
+            } else if (window.innerHeight === initialHeight) {
+                console.log('Keyboard off')
+                document.querySelector('.app-container').className = "app-container"
+                return { displayFooter: true }
+            }
+        })
     }
     
     changePreferences(e) {
@@ -152,6 +212,10 @@ class GlobalConfig extends Component {
     createContact(newContactData) {
         this.contactService.Add(this.contactKey, newContactData)
             .then(newContact => {
+                if (newContact.policyConstraint) {
+                    return false
+                }
+
                 if (this.componentIsMounted.current) {
                     this.setState(({ contacts }) => ({
                         contacts: [...contacts, newContact]
@@ -201,6 +265,10 @@ class GlobalConfig extends Component {
     createEvent(newEventData) {
         this.eventService.Add(this.eventKey, newEventData)
             .then(newEvent => {
+                if (newEvent.policyConstraint) {
+                    return false
+                }
+
                 if (this.componentIsMounted.current) {
                     this.setState(({ events }) => ({
                         events: [...events, newEvent]
@@ -327,7 +395,7 @@ class GlobalConfig extends Component {
     render() {
         const { localTimezone, displaySeconds, contacts, events,
             expandContacts, expandEvents, contactsBtn, eventsBtn,
-            displayConfig, displaySessionMenu } = this.state
+            displayConfig, displaySessionMenu, displayFooter } = this.state
         const userPreferences = {
             localTimezone,
             displaySeconds,
@@ -353,9 +421,9 @@ class GlobalConfig extends Component {
                 toggleDisplaySessionMenu: this.toggleDisplaySessionMenu,
                 closeAllDialogs: this.closeAllDialogs
             }}>
-                <div onClick={(e) => { this.onBlackoutClicked(); this.closeAllDialogs(e); }} className={(expandContacts || expandEvents) ? "blackout-on" : "blackout-off"}></div>
+                <div onClick={(e) => { this.onBlackoutClicked(); this.closeAllDialogs(e); }} className={((expandContacts || expandEvents) ? "blackout-on" : "blackout-off") + (displayFooter ? "" : " keyboard-open")}></div>
                 <NavBar userPreferences={userPreferences}/>
-                <ClockBoard userPreferences={userPreferences}/>
+                <ClockBoard userPreferences={userPreferences} keyboardOpen={!displayFooter} />
                 <div
                     className={"collapse-tab" + (expandContacts ? " tab-open" : "")}
                     onMouseEnter={() => this.onContactsTabHover(true)}
@@ -363,8 +431,8 @@ class GlobalConfig extends Component {
                     onClick={this.closeAllDialogs}>
                     <button className={"collapse-button collapse-btn-l" + (expandContacts ? " collapse-btn-active" : "") + ((contactsBtn || expandContacts) ? "" : " clps-btn-invisible")} onClick={this.toggleContactsPanel}></button>
                 </div>
-                <ContactPanel localTimezone={localTimezone} expandContacts={expandContacts} />
-                <EventPanel localTimezone={localTimezone} expandEvents={expandEvents} />
+                <ContactPanel localTimezone={localTimezone} expandContacts={expandContacts} keyboardOpen={!displayFooter} />
+                <EventPanel localTimezone={localTimezone} expandEvents={expandEvents} keyboardOpen={!displayFooter} />
                 <div
                     className={"collapse-tab-last" + (expandEvents ? " tab-open" : "")}
                     onMouseEnter={() => this.onEventsTabHover(true)}
@@ -372,12 +440,13 @@ class GlobalConfig extends Component {
                     onClick={this.closeAllDialogs}>
                     <button className={"collapse-button collapse-btn-r" + (expandEvents ? " collapse-btn-active" : "") + ((eventsBtn || expandEvents) ? "" : " clps-btn-invisible")} onClick={this.toggleEventsPanel}></button>
                 </div>
+                { displayFooter && (
                 <Footer
                     expandContacts={expandContacts}
                     toggleContactsPanel={this.toggleContactsPanel}
                     expandEvents={expandEvents}
                     toggleEventsPanel={this.toggleEventsPanel}
-                    showClockBoard={this.onBlackoutClicked} />
+                    showClockBoard={this.onBlackoutClicked} />) }
             </UserDataContext.Provider>
         )
     }
@@ -587,6 +656,13 @@ class ClockBoard extends Component {
         if (timezone && name) {
             this.clockService.Add(this.clockKey, { timezone, name })
                 .then(newClock => {
+                    if (newClock.policyConstraint) {
+                        if (callback) {
+                            callback ()
+                        }
+                        return false
+                    }
+
                     if (this.componentIsMounted.current) {
                         this.setState(({ clocks }) => ({
                             clocks: [...clocks, newClock]
@@ -704,13 +780,13 @@ class ClockBoard extends Component {
 
     render() {
         const { newClockData, clocks, displayCreator, editedClockData, editing, displayControls } = this.state
-        const { userPreferences } = this.props
+        const { userPreferences, keyboardOpen } = this.props
         const tickInterval = userPreferences.displaySeconds ? 1000 : 1000 * 5
 
         const { closeAllDialogs } = this.context
         
         return (
-            <div className="clock-board" onClick={closeAllDialogs}>
+            <div className={"clock-board" + (displayCreator ? " open-creator" : "") + (keyboardOpen ? " keyboard-open" : "")} onClick={closeAllDialogs}>
                 <div className="clock-board-header">
                     <h2>Clock board</h2>
                     {displayCreator ? (
@@ -767,9 +843,16 @@ class ClockBoard extends Component {
 class ClockCreator extends Component {
     constructor(props) {
         super(props)
+
+        this.nameInput = createRef()
     
         this.createClock = this.createClock.bind(this)
         this.editClock = this.editClock.bind(this)
+        this.focusNameInput = this.focusNameInput.bind(this)
+    }
+
+    componentDidMount() {
+        this.focusNameInput()
     }
 
     createClock(e) {
@@ -785,6 +868,10 @@ class ClockCreator extends Component {
         const { onSubmit, clockData } = this.props
         onSubmit(e, clockData.id)
     }
+
+    focusNameInput() {
+        this.nameInput.current.focus()
+    }
     
     render() {
         const { clockData, changeClockData, onDismiss, onClear, edited } = this.props
@@ -795,7 +882,7 @@ class ClockCreator extends Component {
                 <form onSubmit={edited ? this.editClock : this.createClock} autoComplete="off">
                     <div>
                         <label htmlFor="name">Choose a clock name</label>
-                        <input type="text" name="name" value={clockData.name} onChange={changeClockData} />
+                        <input type="text" name="name" value={clockData.name} onChange={changeClockData} ref={this.nameInput}/>
                     </div>
                     <div>
                         <label htmlFor="timezone">Pick a time zone</label>
@@ -1075,12 +1162,12 @@ class ContactPanel extends Component {
     render() {
         const contacts = this.context.contacts ? this.context.contacts : []
         const { displayInput, newContactData, editedContactData, editing, displayControls } = this.state
-        const { expandContacts } = this.props
+        const { expandContacts, keyboardOpen } = this.props
 
         const { closeAllDialogs } = this.context
 
         return (
-            <div onClick={closeAllDialogs} className={"contact-panel sidebar-left" + (expandContacts ? "-open" : "-closed")}>
+            <div onClick={closeAllDialogs} className={"contact-panel sidebar-left" + (expandContacts ? "-open" : "-closed") + (keyboardOpen ? " keyboard-open" : "")}>
                 <div className="contact-panel-header">
                     <h2>Contacts</h2>
                     {displayInput ? (
@@ -1133,9 +1220,16 @@ class ContactPanel extends Component {
 class ContactInput extends Component {
     constructor(props) {
         super(props)
+
+        this.nameInput = createRef()
     
         this.createContact = this.createContact.bind(this)
         this.editContact = this.editContact.bind(this)
+        this.focusNameInput = this.focusNameInput.bind(this)
+    }
+
+    componentDidMount() {
+        this.focusNameInput()
     }
 
     createContact(e) {
@@ -1151,6 +1245,10 @@ class ContactInput extends Component {
         const { onSubmit, contactData } = this.props
         onSubmit(e, contactData.id)
     }
+
+    focusNameInput() {
+        this.nameInput.current.focus()
+    }
     
     render() {
         const { contactData, changeContactData, onDismiss, onClear, edited } = this.props
@@ -1160,7 +1258,7 @@ class ContactInput extends Component {
                 <form onSubmit={edited ? this.editContact : this.createContact} autoComplete="off">
                     <div>
                         <label htmlFor="name">Contact name</label>
-                        <input type="text" name="name" value={contactData.name} onChange={changeContactData} />
+                        <input type="text" name="name" value={contactData.name} onChange={changeContactData} ref={this.nameInput}/>
                     </div>
                     <div>
                         <label htmlFor="timezone">Timezone</label>
@@ -1468,12 +1566,12 @@ class EventPanel extends Component {
     render() {
         const events = this.context.events ? this.context.events : []
         const { displayInput, newEventData, editedEventData, editing, displayControls } = this.state
-        const { expandEvents } = this.props
+        const { expandEvents, keyboardOpen } = this.props
 
         const { closeAllDialogs } = this.context
 
         return (
-            <div onClick={closeAllDialogs} className={"event-panel sidebar-right" + (expandEvents ? "-open" : "-closed")}>
+            <div onClick={closeAllDialogs} className={"event-panel sidebar-right" + (expandEvents ? "-open" : "-closed") + (keyboardOpen ? " keyboard-open" : "")}>
                 <div className="event-panel-header">
                     <h2>Events</h2>
                     {displayInput ? (
@@ -1558,9 +1656,16 @@ class ContactSelector extends Component {
 class EventInput extends Component {
     constructor(props) {
         super(props)
+
+        this.nameInput = createRef()
     
         this.createEvent = this.createEvent.bind(this)
         this.editEvent = this.editEvent.bind(this)
+        this.focusNameInput = this.focusNameInput.bind(this)
+    }
+
+    componentDidMount() {
+        this.focusNameInput()
     }
     
     createEvent(e) {
@@ -1577,6 +1682,10 @@ class EventInput extends Component {
         onSubmit(e, eventData.id)
     }
 
+    focusNameInput() {
+        this.nameInput.current.focus()
+    }
+
     render() {
         const { eventData, changeEventData, onDismiss, onClear, edited } = this.props
         
@@ -1591,7 +1700,7 @@ class EventInput extends Component {
                 <form onSubmit={edited ? this.editEvent : this.createEvent} autoComplete="off">
                     <div>
                         <label htmlFor="name">Event name</label>
-                        <input type="text" name="name" value={eventData.name} onChange={changeEventData} />
+                        <input type="text" name="name" value={eventData.name} onChange={changeEventData} ref={this.nameInput}/>
                     </div>
                     <div>
                         <label htmlFor="date">Date</label>
