@@ -1708,7 +1708,7 @@ class EventInput extends Component {
                     </div>
                     <div>
                         <label htmlFor="time">Time</label>
-                        <input type="time" name="time" value={eventData.time} onChange={changeEventData} min={minTime} />
+                        <input type="time" name="time" value={eventData.time} onChange={changeEventData} min={minDate == eventData.date ? minTime : ""} />
                     </div>
                     <div>
                         <label htmlFor="timezone">Timezone</label>

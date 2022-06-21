@@ -2465,7 +2465,7 @@ var EventInput = function (_Component15) {
                             { htmlFor: 'time' },
                             'Time'
                         ),
-                        React.createElement('input', { type: 'time', name: 'time', value: eventData.time, onChange: changeEventData, min: minTime })
+                        React.createElement('input', { type: 'time', name: 'time', value: eventData.time, onChange: changeEventData, min: minDate == eventData.date ? minTime : "" })
                     ),
                     React.createElement(
                         'div',
