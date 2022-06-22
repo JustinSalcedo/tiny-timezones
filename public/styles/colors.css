@@ -18,6 +18,7 @@
     --bkg-event-panel: var(--bkg-front);
     --bkg-main-footer: var(--common-black);
     --bkg-bottom-menu: var(--bkg-front);
+    --bkg-modal: var(--bkg-front);
 
     /* Font colors */
     --input-text: hsl(210, 80%, 25%);
@@ -25,6 +26,7 @@
     --btn-pos: hsl(130, 80%, 18%);
     --btn-neg: hsl(10, 80%, 25%);
     --btn-help: hsl(260, 80%, 25%);
+    --modal-text: var(var(--common-black));
 
     --link-color: hsl(48, 100%, 63%);
     --link-color-hover: hsl(48, 100%, 53%);
@@ -96,6 +98,7 @@ body.dark-theme {
     --bkg-event-panel: var(--bkg-front);
     --bkg-main-footer: hsl(260, 2%, 18%);
     --bkg-bottom-menu: var(--bkg-front);
+    --bkg-modal: var(--bkg-main-navbar);
 
     /* Font colors */
     --input-text: hsl(210, 80%, 97%);
@@ -103,6 +106,7 @@ body.dark-theme {
     --btn-pos: hsl(130, 50%, 97%);
     --btn-neg: hsl(10, 74%, 96%);
     --btn-help: hsl(180, 70%, 95%);
+    --modal-text: var(var(--paper-white));
 
     --link-color: hsl(48, 100%, 63%);
     --link-color-hover: hsl(48, 100%, 53%);
@@ -154,10 +158,6 @@ body.dark-theme {
 body.dark-theme {
     color: var(--paper-white);
 }
-
-/* body.dark-theme h1 {
-    color: initial;
-} */
 
 /* Defaults */
 
@@ -450,6 +450,14 @@ body {
 
 .user-session-menu a:hover {
     color: var(--link-color-hover);
+}
+
+/* Config modal */
+
+.main-modal-config {
+    background-color: var(--bkg-modal);
+    color: var(--modal-text);
+    border-radius: .5rem;
 }
 
 /* Clock board */

@@ -53,18 +53,19 @@ body.dark-theme {
     mask: url("../assets/darkmode.svg");
     width: 2.5rem;
     height: 2.5rem;
-    margin-top: 4px;
 }
 
-@media screen and (max-width: 1279px) {
-    .icon-darkmode {
-        background-color: var(--darkmode-alt) !important;
-    }
+/* Darkmode icon in dark mode */
 
-    .icon-darkmode:hover, .icon-darkmode:focus {
-        background-color: var(--darkmode-alt-hover) !important;
-    }
+body.dark-theme  .icon-darkmode {
+   background-color: var(--darkmode-alt);
 }
+
+body.dark-theme .icon-darkmode:hover, body.dark-theme .icon-darkmode:focus {
+   background-color: var(--darkmode-alt-hover);
+}
+
+/*  */
 
 .icon-user {
     -webkit-mask: url("../assets/user.svg");

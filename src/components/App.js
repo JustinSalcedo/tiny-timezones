@@ -97,6 +97,7 @@ class GlobalConfig extends Component {
         this.state = {
             localTimezone: autoDetectTimezone(),
             displaySeconds: false,
+            mode24h: false,
             darkTheme: window.matchMedia("(prefers-color-scheme: dark)").matches,
             contacts: [],
             events: [],
@@ -146,9 +147,9 @@ class GlobalConfig extends Component {
             .then(events => this.setState({ events }))
             .catch(error => console.log(error))
 
-        const { localTimezone, displaySeconds, darkTheme } = this.context.user
+        const { localTimezone, displaySeconds, mode24h, darkTheme } = this.context.user
         document.body.className = darkTheme ? "dark-theme" : ""
-        this.setState({ localTimezone, displaySeconds, darkTheme })
+        this.setState({ localTimezone, displaySeconds, mode24h, darkTheme })
 
         window.addEventListener('resize', this.handleVirtualKbd)
     }
@@ -184,7 +185,8 @@ class GlobalConfig extends Component {
     changePreferences(e) {
         const { name, type } = e.target
 
-        if (name === "localTimezone" || name === "displaySeconds") {
+        const configKeys = ["localTimezone", "displaySeconds", "mode24h"]
+        if (configKeys.includes(name)) {
             const value = type === "checkbox" ? e.target.checked : e.target.value
             this.setState({
                 [name]: value
@@ -318,14 +320,14 @@ class GlobalConfig extends Component {
     toggleContactsPanel() {
         this.setState(({ expandContacts }) => ({
             expandContacts: !expandContacts,
-            expandEvents: expandContacts && false
+            expandEvents: false
         }))
     }
 
     toggleEventsPanel() {
         this.setState(({ expandEvents }) => ({
             expandEvents: !expandEvents,
-            expandContacts: expandEvents && false
+            expandContacts: false
         }))
     }
 
@@ -344,7 +346,8 @@ class GlobalConfig extends Component {
     onBlackoutClicked() {
         this.setState(() => ({
             expandContacts: false,
-            expandEvents: false
+            expandEvents: false,
+            displayConfig: false
         }))
     }
 
@@ -377,12 +380,12 @@ class GlobalConfig extends Component {
     }
 
     closeAllDialogs(e) {
-        const isOutOfConfig = this.defineOutOfDialog(e.target, ["main-navbar-button", "main-navbar-config"])
-        if (isOutOfConfig) {
-            this.setState(() => ({
-                displayConfig: false
-            }))
-        }
+        // const isOutOfConfig = this.defineOutOfDialog(e.target, ["main-navbar-button", "main-navbar-config"])
+        // if (isOutOfConfig) {
+        //     this.setState(() => ({
+        //         displayConfig: false
+        //     }))
+        // }
 
         const isOutOfSessionMenu = this.defineOutOfDialog(e.target, ["user-session-input", "user-session-menu", "icon-user"])
         if (isOutOfSessionMenu) {
@@ -393,15 +396,18 @@ class GlobalConfig extends Component {
     }
 
     render() {
-        const { localTimezone, displaySeconds, contacts, events,
+        const { localTimezone, displaySeconds, mode24h, contacts, events,
             expandContacts, expandEvents, contactsBtn, eventsBtn,
             displayConfig, displaySessionMenu, displayFooter } = this.state
         const userPreferences = {
             localTimezone,
             displaySeconds,
+            mode24h,
             changePreferences: this.changePreferences,
             toggleTheme: this.toggleTheme
         }
+
+        const blackoutPage = expandContacts || expandEvents || displayConfig
 
         return (
             <UserDataContext.Provider value={{
@@ -421,7 +427,10 @@ class GlobalConfig extends Component {
                 toggleDisplaySessionMenu: this.toggleDisplaySessionMenu,
                 closeAllDialogs: this.closeAllDialogs
             }}>
-                <div onClick={(e) => { this.onBlackoutClicked(); this.closeAllDialogs(e); }} className={((expandContacts || expandEvents) ? "blackout-on" : "blackout-off") + (displayFooter ? "" : " keyboard-open")}></div>
+                <div
+                onClick={(e) => { this.onBlackoutClicked(); this.closeAllDialogs(e); }}
+                className={((blackoutPage) ? "blackout-on" : "blackout-off") + (displayFooter ? "" : " keyboard-open")}
+                style={{ zIndex: displayConfig ? "2" : "3" }}></div>
                 <NavBar userPreferences={userPreferences}/>
                 <ClockBoard userPreferences={userPreferences} keyboardOpen={!displayFooter} />
                 <div
@@ -431,8 +440,8 @@ class GlobalConfig extends Component {
                     onClick={this.closeAllDialogs}>
                     <button className={"collapse-button collapse-btn-l" + (expandContacts ? " collapse-btn-active" : "") + ((contactsBtn || expandContacts) ? "" : " clps-btn-invisible")} onClick={this.toggleContactsPanel}></button>
                 </div>
-                <ContactPanel localTimezone={localTimezone} expandContacts={expandContacts} keyboardOpen={!displayFooter} />
-                <EventPanel localTimezone={localTimezone} expandEvents={expandEvents} keyboardOpen={!displayFooter} />
+                <ContactPanel localTimezone={localTimezone} mode24h={mode24h} expandContacts={expandContacts} keyboardOpen={!displayFooter} />
+                <EventPanel localTimezone={localTimezone} mode24h={mode24h} expandEvents={expandEvents} keyboardOpen={!displayFooter} />
                 <div
                     className={"collapse-tab-last" + (expandEvents ? " tab-open" : "")}
                     onMouseEnter={() => this.onEventsTabHover(true)}
@@ -457,31 +466,33 @@ class NavBar extends Component {
     
     
     render() {
-        const { localTimezone, displaySeconds, changePreferences, toggleTheme } = this.props.userPreferences
+        const { localTimezone, displaySeconds, mode24h, changePreferences, toggleTheme } = this.props.userPreferences
         const { displayConfig, toggleDisplayConfig, displaySessionMenu, toggleDisplaySessionMenu, closeAllDialogs } = this.context
 
         return (
             <nav className="main-navbar" onClick={closeAllDialogs}>
                 <h1>Tiny TimeZones</h1>
-                <form className="main-navbar-config" style={{ display: displayConfig ? "flex" : "none" }}>
+                <form className="main-modal-config" style={{ display: displayConfig ? "block" : "none" }}>
                     <div>
                         <label>Local time zone</label>
                         <TimeZoneSelector name="localTimezone" value={localTimezone} onChange={changePreferences} />
                     </div>
-                    <div>
+                    <div className="form-row">
                         <label className="checkbox-container">
                             Show seconds
                             <input type="checkbox" name="displaySeconds" checked={displaySeconds} onChange={changePreferences} />
                             <span className="checkmark"></span>
                         </label>
-                        <button className="main-navbar-theme alt-button" onClick={toggleTheme}>
+                        <button className="main-navbar-theme" onClick={toggleTheme}>
                         <div className="icon icon-darkmode"></div>
                         </button>
                     </div>
                     <div>
-                        <button className="main-navbar-theme" onClick={toggleTheme}>
-                        <div className="icon icon-darkmode"></div>
-                        </button>
+                        <label className="checkbox-container">
+                            Set 24-hours mode
+                            <input type="checkbox" name="mode24h" checked={mode24h} onChange={changePreferences} />
+                            <span className="checkmark"></span>
+                        </label>
                     </div>
                 </form>
                 <button className="main-navbar-button" onClick={toggleDisplayConfig}>
@@ -822,6 +833,7 @@ class ClockBoard extends Component {
                                     name={clock.name}
                                     tickInterval={tickInterval}
                                     displaySeconds={userPreferences.displaySeconds}
+                                    mode24h={userPreferences.mode24h}
                                     displayControls={displayControls}
                                     startClockEditor={this.startClockEditor}
                                     deleteClockById={this.deleteClockById} />
@@ -947,15 +959,16 @@ class MainClock extends Component {
     }
     
     render() {
-        const { name, timezone, displaySeconds, tickInterval, displayControls } = this.props
+        const { name, timezone, displaySeconds, mode24h, tickInterval, displayControls } = this.props
 
         return (
             <div className="main-clock" >
-                <p className={"main-clock-timer" + `${displaySeconds ? " timer-with-secs" : ""}`}>
+                <p className={"main-clock-timer" + `${displaySeconds ? " timer-with-secs" : ""}` + `${!mode24h ? " timer-12h" : ""}`}>
                     <Clock
                     timezone={timezone}
                     tickInterval={tickInterval}
-                    displaySeconds={displaySeconds} />
+                    displaySeconds={displaySeconds}
+                    mode24h={mode24h} />
                 </p>
                 <p className="main-clock-name">{name}</p>
                 <p className="main-clock-timezone">{timezone}</p>
@@ -1005,11 +1018,20 @@ class Clock extends Component {
     }
 
     displayTime(date) {
+        let timeString = ""
+        const offset = !this.props.mode24h && date.getHours() > 12 ? 12 : 0
+
         if (this.props.displaySeconds) {
-            return formatTimer(date.getHours(), date.getMinutes(), date.getSeconds())
+            timeString = formatTimer(date.getHours() - offset, date.getMinutes(), date.getSeconds())
+        } else {
+            timeString = formatTimer(date.getHours() - offset, date.getMinutes())
         }
 
-        return formatTimer(date.getHours(), date.getMinutes())
+        if (!this.props.mode24h) {
+            timeString = timeString + " " + `${date.getHours() > 11 ? "pm" : "am"}`
+        }
+
+        return timeString
     }
 
     render() {
@@ -1202,6 +1224,7 @@ class ContactPanel extends Component {
                                 timezone={contact.timezone}
                                 tickInterval={1000 * 5}
                                 displaySeconds={false}
+                                mode24h={this.props.mode24h}
                                 displayControls={displayControls}
                                 startContactEditor={this.startContactEditor}
                                 deleteContactById={this.deleteContactById} />
@@ -1292,7 +1315,7 @@ class Contact extends Component {
     }
 
     render() {
-        const { name, timezone, tickInterval, displaySeconds, displayControls } = this.props
+        const { name, timezone, tickInterval, displaySeconds, mode24h, displayControls } = this.props
 
         return (
             <div className="contact">
@@ -1301,7 +1324,8 @@ class Contact extends Component {
                     <Clock
                     timezone={timezone}
                     tickInterval={tickInterval}
-                    displaySeconds={displaySeconds} />
+                    displaySeconds={displaySeconds}
+                    mode24h={mode24h} />
                 </p>
                 <p className="contact-timezone">{timezone}</p>
                 {displayControls && (
@@ -1607,6 +1631,7 @@ class EventPanel extends Component {
                                     name={event.name}
                                     timestamp={new Date(event.timestamp)}
                                     timezone={event.timezone}
+                                    mode24h={this.props.mode24h}
                                     contactIds={event.contactIds}
                                     reminder={event.reminder}
                                     displayReminder={this.displayReminder}
@@ -1764,11 +1789,16 @@ function mapMonthToName(monthNumber) {
     }
 }
 
-function getDateTime(date) {
+function getDateTime(date, mode12h) {
     const month = mapMonthToName(date.getMonth())
     const formattedDate = month + " " + date.getDate()
 
-    const time = formatTimer(date.getHours(), date.getMinutes())
+    const offset = mode12h && date.getHours() > 12 ? 12 : 0
+    const time = formatTimer(date.getHours() - offset, date.getMinutes())
+
+    if (mode12h) {
+        return formattedDate + " " + time + " " + `${date.getHours() > 11 ? "pm" : "am"}`
+    }
     return formattedDate + " " + time
 }
 
@@ -1812,7 +1842,7 @@ class Event extends Component {
         return (
             <div className="event">
                 <p className="event-name">{name}</p>
-                <p className="event-datetime">{getDateTime(timestamp)}</p>
+                <p className="event-datetime">{getDateTime(timestamp, !this.props.mode24h)}</p>
                 <p className="event-timezone">{timezone}</p>
                 <p className="event-timeleft">
                     Time left: <RegressiveClock

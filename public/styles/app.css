@@ -947,6 +947,37 @@
     margin-bottom: 8px;
 }
 
+/* Config modal */
+
+.main-modal-config {
+    display: block;
+    position: fixed;
+    padding: 2rem;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+    z-index: 4;
+    width: min-content;
+}
+
+.main-modal-config > *:not(:last-child) {
+    margin-bottom: 1rem;
+}
+
+.main-modal-config label {
+    margin-bottom: .5rem;
+}
+
+.main-modal-config > * {
+    display: flex;
+    flex-direction: column;
+}
+
+.main-modal-config > .form-row {
+    flex-direction: row;
+    align-items: center;
+}
+
 /* Clock board */
 
 .clock-board-buttons button {
@@ -1044,6 +1075,7 @@
 
 .contact-clock {
     grid-area: contact-clock;
+    width: max-content;
 }
 
 .contact-timezone {
@@ -1121,6 +1153,7 @@
 
 .event-datetime {
     grid-area: event-datetime;
+    width: max-content;
 }
 
 .event-timezone {

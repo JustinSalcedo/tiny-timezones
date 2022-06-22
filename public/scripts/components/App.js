@@ -137,6 +137,7 @@ var GlobalConfig = function (_Component2) {
         _this3.state = {
             localTimezone: autoDetectTimezone(),
             displaySeconds: false,
+            mode24h: false,
             darkTheme: window.matchMedia("(prefers-color-scheme: dark)").matches,
             contacts: [],
             events: [],
@@ -196,10 +197,11 @@ var GlobalConfig = function (_Component2) {
             var _context$user = this.context.user,
                 localTimezone = _context$user.localTimezone,
                 displaySeconds = _context$user.displaySeconds,
+                mode24h = _context$user.mode24h,
                 darkTheme = _context$user.darkTheme;
 
             document.body.className = darkTheme ? "dark-theme" : "";
-            this.setState({ localTimezone: localTimezone, displaySeconds: displaySeconds, darkTheme: darkTheme });
+            this.setState({ localTimezone: localTimezone, displaySeconds: displaySeconds, mode24h: mode24h, darkTheme: darkTheme });
 
             window.addEventListener('resize', this.handleVirtualKbd);
         }
@@ -245,7 +247,8 @@ var GlobalConfig = function (_Component2) {
                 type = _e$target.type;
 
 
-            if (name === "localTimezone" || name === "displaySeconds") {
+            var configKeys = ["localTimezone", "displaySeconds", "mode24h"];
+            if (configKeys.includes(name)) {
                 var value = type === "checkbox" ? e.target.checked : e.target.value;
                 this.setState(_defineProperty({}, name, value));
                 this.context.userService.savePreferences(_defineProperty({}, name, value), !this.context.isGuest);
@@ -425,7 +428,7 @@ var GlobalConfig = function (_Component2) {
                 var expandContacts = _ref10.expandContacts;
                 return {
                     expandContacts: !expandContacts,
-                    expandEvents: expandContacts && false
+                    expandEvents: false
                 };
             });
         }
@@ -436,7 +439,7 @@ var GlobalConfig = function (_Component2) {
                 var expandEvents = _ref11.expandEvents;
                 return {
                     expandEvents: !expandEvents,
-                    expandContacts: expandEvents && false
+                    expandContacts: false
                 };
             });
         }
@@ -464,7 +467,8 @@ var GlobalConfig = function (_Component2) {
             this.setState(function () {
                 return {
                     expandContacts: false,
-                    expandEvents: false
+                    expandEvents: false,
+                    displayConfig: false
                 };
             });
         }
@@ -508,14 +512,12 @@ var GlobalConfig = function (_Component2) {
     }, {
         key: 'closeAllDialogs',
         value: function closeAllDialogs(e) {
-            var isOutOfConfig = this.defineOutOfDialog(e.target, ["main-navbar-button", "main-navbar-config"]);
-            if (isOutOfConfig) {
-                this.setState(function () {
-                    return {
-                        displayConfig: false
-                    };
-                });
-            }
+            // const isOutOfConfig = this.defineOutOfDialog(e.target, ["main-navbar-button", "main-navbar-config"])
+            // if (isOutOfConfig) {
+            //     this.setState(() => ({
+            //         displayConfig: false
+            //     }))
+            // }
 
             var isOutOfSessionMenu = this.defineOutOfDialog(e.target, ["user-session-input", "user-session-menu", "icon-user"]);
             if (isOutOfSessionMenu) {
@@ -534,6 +536,7 @@ var GlobalConfig = function (_Component2) {
             var _state2 = this.state,
                 localTimezone = _state2.localTimezone,
                 displaySeconds = _state2.displaySeconds,
+                mode24h = _state2.mode24h,
                 contacts = _state2.contacts,
                 events = _state2.events,
                 expandContacts = _state2.expandContacts,
@@ -547,9 +550,12 @@ var GlobalConfig = function (_Component2) {
             var userPreferences = {
                 localTimezone: localTimezone,
                 displaySeconds: displaySeconds,
+                mode24h: mode24h,
                 changePreferences: this.changePreferences,
                 toggleTheme: this.toggleTheme
             };
+
+            var blackoutPage = expandContacts || expandEvents || displayConfig;
 
             return React.createElement(
                 UserDataContext.Provider,
@@ -570,9 +576,12 @@ var GlobalConfig = function (_Component2) {
                         toggleDisplaySessionMenu: this.toggleDisplaySessionMenu,
                         closeAllDialogs: this.closeAllDialogs
                     } },
-                React.createElement('div', { onClick: function onClick(e) {
+                React.createElement('div', {
+                    onClick: function onClick(e) {
                         _this12.onBlackoutClicked();_this12.closeAllDialogs(e);
-                    }, className: (expandContacts || expandEvents ? "blackout-on" : "blackout-off") + (displayFooter ? "" : " keyboard-open") }),
+                    },
+                    className: (blackoutPage ? "blackout-on" : "blackout-off") + (displayFooter ? "" : " keyboard-open"),
+                    style: { zIndex: displayConfig ? "2" : "3" } }),
                 React.createElement(NavBar, { userPreferences: userPreferences }),
                 React.createElement(ClockBoard, { userPreferences: userPreferences, keyboardOpen: !displayFooter }),
                 React.createElement(
@@ -588,8 +597,8 @@ var GlobalConfig = function (_Component2) {
                         onClick: this.closeAllDialogs },
                     React.createElement('button', { className: "collapse-button collapse-btn-l" + (expandContacts ? " collapse-btn-active" : "") + (contactsBtn || expandContacts ? "" : " clps-btn-invisible"), onClick: this.toggleContactsPanel })
                 ),
-                React.createElement(ContactPanel, { localTimezone: localTimezone, expandContacts: expandContacts, keyboardOpen: !displayFooter }),
-                React.createElement(EventPanel, { localTimezone: localTimezone, expandEvents: expandEvents, keyboardOpen: !displayFooter }),
+                React.createElement(ContactPanel, { localTimezone: localTimezone, mode24h: mode24h, expandContacts: expandContacts, keyboardOpen: !displayFooter }),
+                React.createElement(EventPanel, { localTimezone: localTimezone, mode24h: mode24h, expandEvents: expandEvents, keyboardOpen: !displayFooter }),
                 React.createElement(
                     'div',
                     {
@@ -633,6 +642,7 @@ var NavBar = function (_Component3) {
             var _props$userPreference = this.props.userPreferences,
                 localTimezone = _props$userPreference.localTimezone,
                 displaySeconds = _props$userPreference.displaySeconds,
+                mode24h = _props$userPreference.mode24h,
                 changePreferences = _props$userPreference.changePreferences,
                 toggleTheme = _props$userPreference.toggleTheme;
             var _context = this.context,
@@ -653,7 +663,7 @@ var NavBar = function (_Component3) {
                 ),
                 React.createElement(
                     'form',
-                    { className: 'main-navbar-config', style: { display: displayConfig ? "flex" : "none" } },
+                    { className: 'main-modal-config', style: { display: displayConfig ? "block" : "none" } },
                     React.createElement(
                         'div',
                         null,
@@ -666,7 +676,7 @@ var NavBar = function (_Component3) {
                     ),
                     React.createElement(
                         'div',
-                        null,
+                        { className: 'form-row' },
                         React.createElement(
                             'label',
                             { className: 'checkbox-container' },
@@ -676,7 +686,7 @@ var NavBar = function (_Component3) {
                         ),
                         React.createElement(
                             'button',
-                            { className: 'main-navbar-theme alt-button', onClick: toggleTheme },
+                            { className: 'main-navbar-theme', onClick: toggleTheme },
                             React.createElement('div', { className: 'icon icon-darkmode' })
                         )
                     ),
@@ -684,9 +694,11 @@ var NavBar = function (_Component3) {
                         'div',
                         null,
                         React.createElement(
-                            'button',
-                            { className: 'main-navbar-theme', onClick: toggleTheme },
-                            React.createElement('div', { className: 'icon icon-darkmode' })
+                            'label',
+                            { className: 'checkbox-container' },
+                            'Set 24-hours mode',
+                            React.createElement('input', { type: 'checkbox', name: 'mode24h', checked: mode24h, onChange: changePreferences }),
+                            React.createElement('span', { className: 'checkmark' })
                         )
                     )
                 ),
@@ -1171,6 +1183,7 @@ var ClockBoard = function (_Component6) {
                                     name: clock.name,
                                     tickInterval: tickInterval,
                                     displaySeconds: userPreferences.displaySeconds,
+                                    mode24h: userPreferences.mode24h,
                                     displayControls: displayControls,
                                     startClockEditor: _this21.startClockEditor,
                                     deleteClockById: _this21.deleteClockById })
@@ -1374,6 +1387,7 @@ var MainClock = function (_Component8) {
                 name = _props9.name,
                 timezone = _props9.timezone,
                 displaySeconds = _props9.displaySeconds,
+                mode24h = _props9.mode24h,
                 tickInterval = _props9.tickInterval,
                 displayControls = _props9.displayControls;
 
@@ -1383,11 +1397,12 @@ var MainClock = function (_Component8) {
                 { className: 'main-clock' },
                 React.createElement(
                     'p',
-                    { className: "main-clock-timer" + ('' + (displaySeconds ? " timer-with-secs" : "")) },
+                    { className: "main-clock-timer" + ('' + (displaySeconds ? " timer-with-secs" : "")) + ('' + (!mode24h ? " timer-12h" : "")) },
                     React.createElement(Clock, {
                         timezone: timezone,
                         tickInterval: tickInterval,
-                        displaySeconds: displaySeconds })
+                        displaySeconds: displaySeconds,
+                        mode24h: mode24h })
                 ),
                 React.createElement(
                     'p',
@@ -1462,11 +1477,20 @@ var Clock = function (_Component9) {
     }, {
         key: 'displayTime',
         value: function displayTime(date) {
+            var timeString = "";
+            var offset = !this.props.mode24h && date.getHours() > 12 ? 12 : 0;
+
             if (this.props.displaySeconds) {
-                return formatTimer(date.getHours(), date.getMinutes(), date.getSeconds());
+                timeString = formatTimer(date.getHours() - offset, date.getMinutes(), date.getSeconds());
+            } else {
+                timeString = formatTimer(date.getHours() - offset, date.getMinutes());
             }
 
-            return formatTimer(date.getHours(), date.getMinutes());
+            if (!this.props.mode24h) {
+                timeString = timeString + " " + ('' + (date.getHours() > 11 ? "pm" : "am"));
+            }
+
+            return timeString;
         }
     }, {
         key: 'render',
@@ -1715,6 +1739,7 @@ var ContactPanel = function (_Component10) {
                                     timezone: contact.timezone,
                                     tickInterval: 1000 * 5,
                                     displaySeconds: false,
+                                    mode24h: _this27.props.mode24h,
                                     displayControls: displayControls,
                                     startContactEditor: _this27.startContactEditor,
                                     deleteContactById: _this27.deleteContactById })
@@ -1883,6 +1908,7 @@ var Contact = function (_Component12) {
                 timezone = _props16.timezone,
                 tickInterval = _props16.tickInterval,
                 displaySeconds = _props16.displaySeconds,
+                mode24h = _props16.mode24h,
                 displayControls = _props16.displayControls;
 
 
@@ -1900,7 +1926,8 @@ var Contact = function (_Component12) {
                     React.createElement(Clock, {
                         timezone: timezone,
                         tickInterval: tickInterval,
-                        displaySeconds: displaySeconds })
+                        displaySeconds: displaySeconds,
+                        mode24h: mode24h })
                 ),
                 React.createElement(
                     'p',
@@ -2284,6 +2311,7 @@ var EventPanel = function (_Component13) {
                                     name: event.name,
                                     timestamp: new Date(event.timestamp),
                                     timezone: event.timezone,
+                                    mode24h: _this31.props.mode24h,
                                     contactIds: event.contactIds,
                                     reminder: event.reminder,
                                     displayReminder: _this31.displayReminder,
@@ -2543,11 +2571,16 @@ function mapMonthToName(monthNumber) {
     }
 }
 
-function getDateTime(date) {
+function getDateTime(date, mode12h) {
     var month = mapMonthToName(date.getMonth());
     var formattedDate = month + " " + date.getDate();
 
-    var time = formatTimer(date.getHours(), date.getMinutes());
+    var offset = mode12h && date.getHours() > 12 ? 12 : 0;
+    var time = formatTimer(date.getHours() - offset, date.getMinutes());
+
+    if (mode12h) {
+        return formattedDate + " " + time + " " + ('' + (date.getHours() > 11 ? "pm" : "am"));
+    }
     return formattedDate + " " + time;
 }
 
@@ -2632,7 +2665,7 @@ var Event = function (_Component16) {
                 React.createElement(
                     'p',
                     { className: 'event-datetime' },
-                    getDateTime(timestamp)
+                    getDateTime(timestamp, !this.props.mode24h)
                 ),
                 React.createElement(
                     'p',
